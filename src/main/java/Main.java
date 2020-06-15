@@ -1,7 +1,11 @@
+import com.oracle.awt.AWTUtils;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.api.JCodecException;
 import org.jcodec.common.io.NIOUtils;
 import org.jcodec.common.model.Picture;
+import org.jcodec.scale.AWTUtil;
+
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
@@ -16,9 +20,10 @@ public class Main {
 
         int frameNumber = 42;
         int frameCount = 100;
+
 //        File scottWheelerFile = new File(Main.class.getResource("ScottWheelerProResHQ.mov").getFile());
 //        File scottWheelerFile = new File(Main.class.getResource("ScottWheelerProResHQ.mov").getFile());
-        File file = new File(args[0]);
+        File file = new File(args[0]);  // Open Video File
 
 //        Picture picture = FrameGrab.getFrameFromFile(scottWheelerFile, 2);
 
@@ -27,6 +32,7 @@ public class Main {
 
         for (int i=0;i<frameCount;i++) {
             Picture picture = grab.getNativeFrame();
+            BufferedImage bufIm = AWTUtil.toBufferedImage(picture);
             System.out.println(picture.getWidth() + "x" + picture.getHeight() + " " + picture.getColor());
         }
     }
