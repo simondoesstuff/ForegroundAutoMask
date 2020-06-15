@@ -32,7 +32,7 @@ public class Main {
 
         for (int i=0;i<frameCount;i++) {
             Picture picture = grab.getNativeFrame();
-            BufferedImage bufIm = AWTUtil.toBufferedImage(picture);
+            BufferedImage bufIm = AWTUtil.toBufferedImage(picture);  // This is new
             System.out.println(picture.getWidth() + "x" + picture.getHeight() + " " + picture.getColor());
         }
     }
