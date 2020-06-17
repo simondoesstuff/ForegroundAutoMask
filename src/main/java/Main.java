@@ -1,4 +1,4 @@
-import com.oracle.awt.AWTUtils;
+//import com.oracle.awt.AWTUtils;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.api.JCodecException;
 import org.jcodec.common.io.NIOUtils;
@@ -8,6 +8,14 @@ import org.jcodec.scale.AWTUtil;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+
+
+// QUESIONS:
+//      BufferedImage.nbsp?
+//      @see ColorModel
+//      @see Raster    WritableRaster raster;
+//      @see WritableRaster
+//      java.awt.AlphaComposite documentation.
 
 public class Main {
     public static void main(String[] args) throws IOException, JCodecException {
