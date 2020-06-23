@@ -1,9 +1,12 @@
 //import com.oracle.awt.AWTUtils;
 import org.jcodec.api.FrameGrab;
 import org.jcodec.api.JCodecException;
+import org.jcodec.api.awt.AWTSequenceEncoder;
 import org.jcodec.common.io.NIOUtils;
+import org.jcodec.common.io.SeekableByteChannel;
 import org.jcodec.common.model.ColorSpace;
 import org.jcodec.common.model.Picture;
+import org.jcodec.common.model.Rational;
 import org.jcodec.scale.AWTUtil;
 
 import java.awt.image.BufferedImage;
@@ -135,10 +138,57 @@ public class Main {
     } // execTestPattern()
 
 
+    private void execTestCopy(String vidInFileName,
+                              String vidOutFileName) throws IOException, JCodecException {
+      System.out.println("VIDEO FILES:  " + vidInFileName + "  " + vidOutFileName);
+
+      int   frameCount  = 200000;
+      long  frameNo     = -1;
+
+      File                fileIn   = new File(vidInFileName);   // Open Video Input File
+      SeekableByteChannel fileOut  = null;
+
+      try {
+        ///////////////////////////////////////////////////////////////
+        // Setup output channel which is essentially and output file
+        // and an encoder since mp4 is a compressed video format.
+        ///////////////////////////////////////////////////////////////
+
+        fileOut = NIOUtils.writableFileChannel(vidOutFileName); // Open Video Output File
+        AWTSequenceEncoder encoder = new AWTSequenceEncoder(fileOut, Rational.R(24, 1));
+
+        ///////////////////////////////////////////////////////////////
+        // Setup the input channel just like in the -testPattern code.
+        ///////////////////////////////////////////////////////////////
+
+        FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileIn)); // Helper for inFile
+        Picture picture = null;           // Picture is one frame
+        frameNo = getFrameNumber(grab);   // Track Frame Number for debugging
+
+        ///////////////////////////////////////////////////////////
+        // Loop through all input frams and send to output encoder
+        ///////////////////////////////////////////////////////////
+
+        while ((picture = grab.getNativeFrame()) != null) {
+          //dumpPicture(picture, frameNo);
+          BufferedImage bufIm = AWTUtil.toBufferedImage(picture);  // Get frame
+          //dumpBufferedImage(bufIm);
+          frameNo = getFrameNumber(grab);
+          encoder.encodeImage(bufIm);
+        } // while
+
+        encoder.finish();
+      } finally {
+        NIOUtils.closeQuietly(fileOut);
+      }
+    } // execTestCopy()
+
+
     private void help() {
         System.out.println("Video App: Bad arguments\n"
                 + "USAGE:\n"
-                + "-testPattern"
+                + "-testPattern\n"
+                + "-copyTest\n"
         );
     }
 
@@ -177,6 +227,9 @@ public class Main {
 
         if (arg0.equalsIgnoreCase("-testPattern")) {
           execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
+          return;
+        } else if (arg0.equalsIgnoreCase("-copyTest")) {
+          execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mp4");
           return;
         } else {
           help();
