@@ -229,7 +229,7 @@ public class Main {
           execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
           return;
         } else if (arg0.equalsIgnoreCase("-copyTest")) {
-          execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mp4");
+          execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
           return;
         } else {
           help();
