@@ -151,6 +151,9 @@ public class Main {
       if (!fileIn.exists()) {
         System.out.println("Input file does not exist\n" + vidInFileName);
         help();
+        return;
+      } else {
+        System.out.println("Input file exists\n" + vidInFileName);
       }
 
       try {
