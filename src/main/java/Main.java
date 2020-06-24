@@ -145,8 +145,13 @@ public class Main {
       int   frameCount  = 200000;
       long  frameNo     = -1;
 
-      File                fileIn   = new File(vidInFileName);   // Open Video Input File
       SeekableByteChannel fileOut  = null;
+      File                fileIn   = new File(vidInFileName);   // Open Video Input File
+
+      if (!fileIn.exists()) {
+        System.out.println("Input file does not exist\n" + vidInFileName);
+        help();
+      }
 
       try {
         ///////////////////////////////////////////////////////////////
