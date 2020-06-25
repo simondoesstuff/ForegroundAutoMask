@@ -12,11 +12,11 @@ import java.io.File;
 import java.io.IOException;
 
 public class TestCopy extends TransformVideo {
-  private TestCopy(String infile) {   // Private to force caller to provide both file names
+  private TestCopy(String infile) throws IOException, JCodecException {   // Private to force caller to provide both file names
     super(infile);
   }
 
-  public TestCopy(String infile, String outfile) {
+  public TestCopy(String infile, String outfile) throws IOException, JCodecException {
     super(infile, outfile);
   }
 
@@ -30,8 +30,8 @@ public class TestCopy extends TransformVideo {
   public boolean execTransform() throws IOException, JCodecException {
     System.out.println("TestCopy.execTransform() VIDEO FILES:  " + vidInFileName + "  " + vidOutFileName);
 
-    int   frameCount  = 200000;
-    long  frameNo     = -1;
+//    int   frameCount  = 200000;
+//    long  frameNo     = -1;
 
     SeekableByteChannel fileOut  = null;
     File fileIn   = new File(vidInFileName);   // Open Video Input File
@@ -78,5 +78,5 @@ public class TestCopy extends TransformVideo {
     }
 
     return true;
-  } // execTestCopy()
+  } // execTransform()
 } // class

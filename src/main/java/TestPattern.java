@@ -9,7 +9,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class TestPattern extends TransformVideo {
-  public TestPattern(String infile) { // Constructor
+  public TestPattern(String infile) throws IOException, JCodecException { // Constructor
     super(infile);
   }
 
@@ -33,7 +33,7 @@ public class TestPattern extends TransformVideo {
   public boolean execTransform() throws IOException, JCodecException {
     System.out.println("TestPattern.execTransform() VIDEO FILE:  " + vidInFileName);
 
-    int   frameCount  = 200000;
+//    int   frameCount  = 200000;
     long  frameNo     = 0;
 
     File file = new File(vidInFileName);  // Open Video File
@@ -54,5 +54,5 @@ public class TestPattern extends TransformVideo {
     }
 
     return true;
-  } // execTestPattern()
+  } // execTransform()
 } // class

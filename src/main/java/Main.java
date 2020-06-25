@@ -30,7 +30,7 @@ import java.io.IOException;
 //      U0 Y0 V0  Y1 U2  Y2 V2  Y3 U4  Y4 V4…
 
 public class Main {
-  private TransformVideo  tv = null;
+    private TransformVideo  tv = null;
 
     // No Constructor -- Imagine that.
 
@@ -61,12 +61,21 @@ public class Main {
     } // execTestCopy()
 
 
+    private void execBackground(String vidInFileName,
+                                String vidOutFileName,
+                                String vidBgFileName) throws IOException, JCodecException {
+      System.out.println("Main.Background() START");
+      tv = new BackGroundAvailable(vidInFileName, vidOutFileName, vidBgFileName);
+      execTransform();  // Execute the specific transform for this derived class
+    } // execBackground()
+
+
     private void help() {
         System.out.println("Video App: Bad arguments\n"
                 + "\nUSAGE:\n"
                 + "-testPattern\n"
                 + "-copyTest\n"
-                + "-removeBackground <backgroundVideo> <foregroundVideo>"
+                + "-background <foregroundMP4> <outputMov> <backgroundMP4>  "
         );
     }
 
@@ -85,14 +94,16 @@ public class Main {
         } else if (arg0.equalsIgnoreCase("-copyTest")) {
           execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
           return;
-        } else if (arg0.equalsIgnoreCase("-removeBackground")) {
+        } else if (arg0.equalsIgnoreCase("-background")) {
           if (args.length < 3) {
             System.out.println("Insufficient number of arguments for command.  Num=" + args.length);
             help();
             return;
           }
 
-          execTestCopy("P:\\Dad\\VideoSoftware\\TestPatterxxxn.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
+          execBackground("P:\\Dad\\VideoSoftware\\TestPatternWithFG.mp4",
+                         "P:\\Dad\\VideoSoftware\\TestPatternOUT.mov",
+                         "P:\\Dad\\VideoSoftware\\TestPatternBG.mp4");
           return;
         } else {
           help();

@@ -10,26 +10,72 @@ import org.jcodec.scale.AWTUtil;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class TransformVideo {
-  String vidInFileName    = null; // Input video filename containing FG & BG (mp4)
-  String vidOutFileName   = null; // Output video filename (mov)
-  String vidBgFileName    = null; // BG video filename w/o FG (mp4)
+  protected String              vidInFileName   = null; // Input video filename containing FG & BG (mp4)
+  protected String              vidOutFileName  = null; // Output video filename (mov)
+  protected String              vidBgFileName   = null; // BG video filename w/o FG (mp4)
+  protected File                fileIn          = null; // Input video file handle
+  protected File                fileBg          = null;  // Background video file handle
+  protected SeekableByteChannel fileOut         = null; // Output video file handle
+  protected AWTSequenceEncoder  encoder         = null; // .mov encoder
+  protected FrameGrab           grabIn          = null; // Frame Grabber class
+  protected FrameGrab           grabBg          = null; // Frame Grabber class
+  protected Picture             pictureIn       = null; // R/W frame image
+  protected Picture             pictureBg       = null; // R/W frame image
+  protected BufferedImage       bufImgIn        = null; // R/W frame image
+  protected BufferedImage       bufImgBg        = null; // R/W frame image
+  protected BufferedImage       bufImgOut       = null; // R/W frame image
+  protected long                frameNo         = -1;   // Frame Number
 
-  public TransformVideo(String infile) {                    // Constructor
+  public static final int DCM_RED_MASK   = 0x00ff0000; // Stollen from BufferedImage
+  public static final int DCM_GREEN_MASK = 0x0000ff00;
+  public static final int DCM_BLUE_MASK  = 0x000000ff;
+  public static final int DCM_ALPHA_MASK = 0xff000000;
+
+
+  private void openInFile() throws IOException, JCodecException {
+    fileIn   = new File(vidInFileName);   // Open Video Input File
+    grabIn = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileIn)); // Helper for inFile
+  }
+
+  private void openBgFile() throws IOException, JCodecException {
+    fileBg = new File(vidBgFileName);   // Open Video Input File
+    grabBg = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileBg)); // Helper for BgFile
+  }
+
+  private void openOutFile() throws IOException {
+    ///////////////////////////////////////////////////////////////
+    // Setup output channel which is essentially and output file
+    // and an encoder since mp4 is a compressed video format.
+    ///////////////////////////////////////////////////////////////
+
+    fileOut = NIOUtils.writableFileChannel(vidOutFileName); // Open Video Output File
+    encoder = new AWTSequenceEncoder(fileOut, Rational.R(24, 1));
+  }
+
+
+  protected TransformVideo(String infile) throws IOException, JCodecException {                    // Constructor
     vidInFileName = infile;
+    openInFile();
   }
 
-  public TransformVideo(String infile, String outfile) {    // Constructor
-    vidInFileName     = infile;
+  protected TransformVideo(String infile, String outfile) throws IOException, JCodecException {    // Constructor
+    vidInFileName   = infile;
     vidOutFileName  = outfile;
+    openInFile();
+    openOutFile();
   }
 
-  public TransformVideo(String infile, String outfile, String bgfile) {    // Constructor
+  protected TransformVideo(String infile, String outfile, String bgfile) throws IOException, JCodecException {    // Constructor
     vidInFileName   = infile;
     vidOutFileName  = outfile;
     vidBgFileName   = bgfile;
+    openInFile();
+    openOutFile();
+    openBgFile();
   }
 
   ///////////////////////////////////////////////////////
@@ -54,6 +100,20 @@ public class TransformVideo {
     return "0x" + Integer.toHexString(pixel);
   }
 
+
+  protected int getInputWidth() {
+    if (pictureIn==null)
+      return 0;
+
+    return pictureIn.getWidth();
+  }
+
+  protected int getInputHeight() {
+    if (pictureIn==null)
+      return 0;
+
+    return pictureIn.getHeight();
+  }
 
   protected static void dumpPicture(Picture p, long frameNumber) {
     if (p == null)
