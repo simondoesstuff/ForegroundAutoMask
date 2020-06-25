@@ -1,5 +1,4 @@
 *.mp4
 *.mov
-target/
 .idea/
-/target/
+target/
