@@ -13,8 +13,9 @@ import java.io.File;
 import java.io.IOException;
 
 public class TransformVideo {
-  String vidInFileName    = null;
-  String vidOutFileName = null;
+  String vidInFileName    = null; // Input video filename containing FG & BG (mp4)
+  String vidOutFileName   = null; // Output video filename (mov)
+  String vidBgFileName    = null; // BG video filename w/o FG (mp4)
 
   public TransformVideo(String infile) {                    // Constructor
     vidInFileName = infile;
@@ -23,6 +24,12 @@ public class TransformVideo {
   public TransformVideo(String infile, String outfile) {    // Constructor
     vidInFileName     = infile;
     vidOutFileName  = outfile;
+  }
+
+  public TransformVideo(String infile, String outfile, String bgfile) {    // Constructor
+    vidInFileName   = infile;
+    vidOutFileName  = outfile;
+    vidBgFileName   = bgfile;
   }
 
   ///////////////////////////////////////////////////////
