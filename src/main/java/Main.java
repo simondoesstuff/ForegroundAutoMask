@@ -30,13 +30,12 @@ import java.io.IOException;
 //      U0 Y0 V0  Y1 U2  Y2 V2  Y3 U4  Y4 V4…
 
 public class Main {
+  private TransformVideo  tv = null;
+
     // No Constructor -- Imagine that.
 
-    private void execTestPattern(String vidFileName) throws IOException, JCodecException {
-      System.out.println("Main.execTestPattern() START");
-      TransformVideo  tv = new TransformVideo();
-
-      if (tv.execTestPattern(vidFileName)) {
+    private void execTransform() throws IOException, JCodecException {
+      if (tv.execTransform()) {   // Implement method in derived class
         System.out.println("Main.execTestPattern() success");
         return;
       } else {
@@ -44,22 +43,21 @@ public class Main {
         help();
         return;
       }
+    } // execTransform()
+
+
+    private void execTestPattern(String vidFileName) throws IOException, JCodecException {
+      System.out.println("Main.execTestPattern() START");
+      tv = new TestPattern(vidFileName);
+      execTransform();  // Execute the specific transform for this derived class
     } // execTestPattern()
 
 
     private void execTestCopy(String vidInFileName,
                               String vidOutFileName) throws IOException, JCodecException {
       System.out.println("Main.execTestCopy() START");
-      TransformVideo  tv = new TransformVideo();
-
-      if (tv.execTestCopy(vidInFileName, vidOutFileName)) {
-        System.out.println("Main.execTestCopy() success");
-        return;
-      } else {
-        System.out.println("Main.execTestCopy() failure");
-        help();
-        return;
-      }
+      tv = new TestCopy(vidInFileName, vidOutFileName);
+      execTransform();  // Execute the specific transform for this derived class
     } // execTestCopy()
 
 

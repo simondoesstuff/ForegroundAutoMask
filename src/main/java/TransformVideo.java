@@ -13,9 +13,16 @@ import java.io.File;
 import java.io.IOException;
 
 public class TransformVideo {
+  String vidInFileName    = null;
+  String vidOutFileName = null;
 
-  public TransformVideo() {   // Constructor
-    // constructor
+  public TransformVideo(String infile) {                    // Constructor
+    vidInFileName = infile;
+  }
+
+  public TransformVideo(String infile, String outfile) {    // Constructor
+    vidInFileName     = infile;
+    vidOutFileName  = outfile;
   }
 
   ///////////////////////////////////////////////////////
@@ -41,7 +48,7 @@ public class TransformVideo {
   }
 
 
-  private static void dumpPicture(Picture p, long frameNumber) {
+  protected static void dumpPicture(Picture p, long frameNumber) {
     if (p == null)
       return;
 
@@ -91,111 +98,8 @@ public class TransformVideo {
   } // dumpBufferedImage()
 
 
-  private static boolean magicFrame(long fmNo) {  // Used with the test below
-    if (fmNo < 10)
-      return true;
-    else if ((fmNo > 237) && (fmNo < 245))
-      return true;
-    else if (fmNo > 475)
-      return true;
-    else
-      return false;
+  public boolean execTransform() throws IOException, JCodecException {
+    System.out.println("Oops! Super class TransformVideo.execTransform() called instead of derived class method");
+    return false;
   }
-
-
-  //////////////////////////////////////////////////////////////////
-  // This test is used to verify how pixes data is formatted within
-  // a BufferedImage data structure.
-  //////////////////////////////////////////////////////////////////
-
-  public static boolean execTestPattern(String vidFileName) throws IOException, JCodecException {
-    System.out.println("VIDEO FILE:  " + vidFileName);
-
-    int   frameCount  = 200000;
-    long  frameNo     = 0;
-
-    File file = new File(vidFileName);  // Open Video File
-
-//        Picture picture = FrameGrab.getFrameFromFile(scottWheelerFile, 2);
-
-    FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
-    grab.seekToSecondPrecise(0); // Seek to zero second.  At 24 frames/sec we should be around frame 24.
-    TransformVideo.dumpFrameNumber(grab);
-    Picture picture = null;    // Picture is one frame
-
-    while ((picture = grab.getNativeFrame()) != null) {
-      frameNo = TransformVideo.getFrameNumber(grab);
-
-      if (TransformVideo.magicFrame(frameNo)) {
-        dumpPicture(picture, frameNo);
-        BufferedImage bufIm = AWTUtil.toBufferedImage(picture);  //
-        dumpBufferedImage(bufIm);
-      }
-    }
-
-    return true;
-  } // execTestPattern()
-
-
-  ///////////////////////////////////////////////////////////////////
-  // This test verifies that an mp4 video can be read in a frame at a
-  // time and output/encoded into a .mov file that is effectively
-  // identical.  Return true for success and false for error.
-  // Helps the caller bring up help() when things go wrong.
-  ///////////////////////////////////////////////////////////////////
-
-  public boolean execTestCopy(String vidInFileName,
-                            String vidOutFileName) throws IOException, JCodecException {
-    System.out.println("VIDEO FILES:  " + vidInFileName + "  " + vidOutFileName);
-
-    int   frameCount  = 200000;
-    long  frameNo     = -1;
-
-    SeekableByteChannel fileOut  = null;
-    File fileIn   = new File(vidInFileName);   // Open Video Input File
-
-    if (!fileIn.exists()) {
-      System.out.println("Input file does not exist\n" + vidInFileName);
-      return false;
-    } else {
-      System.out.println("Input file exists\n" + vidInFileName);
-    }
-
-    try {
-      ///////////////////////////////////////////////////////////////
-      // Setup output channel which is essentially and output file
-      // and an encoder since mp4 is a compressed video format.
-      ///////////////////////////////////////////////////////////////
-
-      fileOut = NIOUtils.writableFileChannel(vidOutFileName); // Open Video Output File
-      AWTSequenceEncoder encoder = new AWTSequenceEncoder(fileOut, Rational.R(24, 1));
-
-      ///////////////////////////////////////////////////////////////
-      // Setup the input channel just like in the -testPattern code.
-      ///////////////////////////////////////////////////////////////
-
-      FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileIn)); // Helper for inFile
-      Picture picture = null;           // Picture is one frame
-      frameNo = getFrameNumber(grab);   // Track Frame Number for debugging
-
-      ///////////////////////////////////////////////////////////
-      // Loop through all input frams and send to output encoder
-      ///////////////////////////////////////////////////////////
-
-      while ((picture = grab.getNativeFrame()) != null) {
-        //dumpPicture(picture, frameNo);
-        BufferedImage bufIm = AWTUtil.toBufferedImage(picture);  // Get frame
-        //dumpBufferedImage(bufIm);
-        frameNo = getFrameNumber(grab);
-        encoder.encodeImage(bufIm);
-      } // while
-
-      encoder.finish();
-    } finally {
-      NIOUtils.closeQuietly(fileOut);
-    }
-
-    return true;
-  } // execTestCopy()
-
 } // class
