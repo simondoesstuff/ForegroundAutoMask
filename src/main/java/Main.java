@@ -77,26 +77,29 @@ public class Main {
           return;
         }
 
-        String arg0 = args[0];
+        String cmdHandle = args[0];
+        String[] cmdArgs = new String[args.length - 1];                                     // this line should be the original arguments except for arg0. It is useful because it can be passed into the method
+                                                                                            //... so that it can access the command-specific arguments directly instead of handling it in the switch statement
+                                                                                            //... which will add bulk.
+        System.arraycopy(args, 1, cmdArgs,0, cmdArgs.length);
 
-        if (arg0.equalsIgnoreCase("-testPattern")) {
-          execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
-          return;
-        } else if (arg0.equalsIgnoreCase("-copyTest")) {
-          execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
-          return;
-        } else if (arg0.equalsIgnoreCase("-removeBackground")) {
-          if (args.length < 3) {
-            System.out.println("Insufficient number of arguments for command.  Num=" + args.length);
-            help();
-            return;
-          }
-
-          execTestCopy("P:\\Dad\\VideoSoftware\\TestPatterxxxn.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
-          return;
-        } else {
-          help();
-          return;
+        switch (cmdHandle.toLowerCase()) {
+            case ("-testpattern"):
+                execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
+                break;
+            case ("-copytest"):
+                execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
+                break;
+            case ("-removebackground"):
+                if (cmdArgs.length != 2) {
+                    System.out.println("Insufficient number of arguments for command.  Num=" + cmdArgs.length);
+                    help();
+                    return;
+                }
+                break;
+            default:
+                help();
+                break;
         }
     } // commandInterpreter()
 
