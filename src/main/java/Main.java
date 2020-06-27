@@ -61,10 +61,22 @@ public class Main {
     } // execTestCopy()
 
 
-    private void execBackground(String vidInFileName,
-                                String vidOutFileName,
-                                String vidBgFileName) throws IOException, JCodecException {
-      System.out.println("Main.Background() START");
+    private void execBackground(String[] args) throws IOException, JCodecException {
+      if (args.length < 3) {
+        System.out.println("Insufficient number of arguments for command.  Num=" + args.length);
+        help();
+        return;
+      }
+
+      String vidInFileName = args[0];
+      String vidOutFileName = args[1];
+      String vidBgFileName = args[2];
+
+      System.out.println("Main.Background() \n"
+              + "FG  '" + vidInFileName   + "'\n"
+              + "OUT '" + vidOutFileName  + "'\n"
+              + "BG  '" + vidBgFileName   + "'");
+
       tv = new BackGroundAvailable(vidInFileName, vidOutFileName, vidBgFileName);
       execTransform();  // Execute the specific transform for this derived class
     } // execBackground()
@@ -73,47 +85,47 @@ public class Main {
     private void help() {
         System.out.println("Video App: Bad arguments\n"
                 + "\nUSAGE:\n"
-                + "-testPattern\n"
-                + "-copyTest\n"
+                + "-testpattern\n"
+                + "-copytest\n"
                 + "-background <foregroundMP4> <outputMov> <backgroundMP4>  "
         );
     }
 
 
     private void commandInterpreter(String[] args) throws IOException, JCodecException {
+        System.out.println("commandInterpreter() START");
+
         if (args==null || (args.length < 1)) {
           help();
           return;
         }
 
-        String arg0 = args[0];
+        String cmdHandle = args[0];
+        String[] cmdArgs = new String[args.length - 1];       // Allocate a smaller string array
+        System.arraycopy(args, 1, cmdArgs,0, cmdArgs.length);// Put back in original array
 
-        if (arg0.equalsIgnoreCase("-testPattern")) {
-          execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
-          return;
-        } else if (arg0.equalsIgnoreCase("-copyTest")) {
-          execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
-          return;
-        } else if (arg0.equalsIgnoreCase("-background")) {
-          if (args.length < 3) {
-            System.out.println("Insufficient number of arguments for command.  Num=" + args.length);
-            help();
-            return;
-          }
+        switch (cmdHandle.toLowerCase()) {
+            case ("-testpattern"):
+                execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
+                break;
+            case ("-copytest"):
+                execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
+                break;
+            case ("-background"):
+                execBackground(cmdArgs);
+                break;
+            default:
+                help();
+                break;
+        }  // switch
 
-          execBackground("P:\\Dad\\VideoSoftware\\TestPatternWithFG.mp4",
-                         "P:\\Dad\\VideoSoftware\\TestPatternOUT.mov",
-                         "P:\\Dad\\VideoSoftware\\TestPatternBG.mp4");
-          return;
-        } else {
-          help();
-          return;
-        }
+        System.out.println("commandInterpreter() DONE");
     } // commandInterpreter()
 
 
     public static void main(String[] args) throws IOException, JCodecException {
-        Main videoApp = new Main(); // Be done with static
-        videoApp.commandInterpreter(args);
+      System.out.println("Main() START");
+      Main videoApp = new Main(); // Be done with static
+      videoApp.commandInterpreter(args);
     }  // main()
 } // class
