@@ -30,11 +30,29 @@ public class TransformVideo {
   protected BufferedImage       bufImgOut       = null; // R/W frame image
   protected long                frameNo         = -1;   // Frame Number
 
-  public static final int DCM_RED_MASK   = 0x00ff0000; // Stollen from BufferedImage
-  public static final int DCM_GREEN_MASK = 0x0000ff00;
-  public static final int DCM_BLUE_MASK  = 0x000000ff;
-  public static final int DCM_ALPHA_MASK = 0xff000000;
+  public static final int DCM_RED_MASK    = 0x00ff0000; // Stollen from BufferedImage
+  public static final int DCM_GREEN_MASK  = 0x0000ff00;
+  public static final int DCM_BLUE_MASK   = 0x000000ff;
+  public static final int DCM_ALPHA_MASK  = 0xff000000;
+  public static final int DCM_RED_SHIFT   = 16;
+  public static final int DCM_GREEN_SHIFT = 8;
+  public static final int DCM_BLUE_SHIFT  = 0;
 
+  public static int getRed(int pixel) {
+    return (pixel & DCM_RED_MASK)>>DCM_RED_SHIFT;
+  }
+
+  public static int getGreen(int pixel) {
+    return (pixel & DCM_GREEN_MASK)>>DCM_GREEN_SHIFT;
+  }
+
+  public static int getBlue(int pixel) {
+    return (pixel & DCM_BLUE_MASK);
+  }
+
+  public static int rgbToPixel(int r, int g, int b) {
+    return DCM_ALPHA_MASK|(r<<DCM_RED_SHIFT)|(g<<DCM_GREEN_SHIFT)|b;
+  }
 
   private void openInFile() throws IOException, JCodecException {
     fileIn   = new File(vidInFileName);   // Open Video Input File

@@ -31,10 +31,57 @@ public class BackGroundAvailable extends TransformVideo {
     super(infile, outfile, bgfile);
   }
 
-  ///////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////
   // ALGORITHM:
-  //    Walk every pixel in every row and column
-  ///////////////////////////////////////////////////////////////////
+  //    Verify that the foreground primary color for one pixel is
+  //    within window ticks of the background primary color.
+  /////////////////////////////////////////////////////////////////////
+
+  private int window = 10; // Match fg +/- window of bg
+
+  private boolean primaryMatch(int fgPrimary, int bgPrimary) {
+
+    int left  = bgPrimary - window;
+    int right = bgPrimary + window;
+
+    if ((fgPrimary >=left) && (fgPrimary<=right))
+      return true;
+    else
+      return false;
+  }
+
+
+  // Return true if the foreground pixel is an
+  // approximate match to the background pixel.
+
+  private boolean pixelMatch(int fg, int bg) {
+    int fgRed = getRed(fg);   // Get Foreground primary colors
+    int fgGrn = getGreen(fg);
+    int fgBlu = getBlue(fg);
+
+    int bgRed = getRed(bg);   // Get Background primary colors
+    int bgGrn = getGreen(bg);
+    int bgBlu = getBlue(bg);
+
+    if (!primaryMatch(fgRed, bgRed))
+      return false;
+
+    if (!primaryMatch(fgGrn, bgGrn))
+      return false;
+
+    if (!primaryMatch(fgBlu, bgBlu))
+      return false;
+
+    return true;
+  } // pixelMatch()
+
+
+//  private boolean pixelMatch(int fg, int bg) {
+//    if (fg == bg)
+//      return true;
+//    else
+//      return false;
+//  } // pixelMatch()
 
   private void reviseImgOut() {
     int Width   = getInputWidth();
@@ -47,8 +94,17 @@ public class BackGroundAvailable extends TransformVideo {
         int pixelIN = bufImgIn.getRGB(row, col);
         int pixelBG = bufImgBg.getRGB(row, col);
 
-        if (pixelIN == pixelBG) {
-          bufImgOut.setRGB(row, col,TransformVideo.DCM_ALPHA_MASK); // Black with 0xff Alpha Channel
+        //////////////////////////////////////////////////////////////////////////////
+        // ALGORITHM:
+        //    Walk every pixel in every row and column
+        //    If the image pixel value is roughly the background pixel value,
+        //    then force the output pixel to be black and maybe set alpha.
+        //    Otherwise, we'll do nothing and leave the out video as is.   Which will
+        //    leave presumably foreground imagery.
+        //////////////////////////////////////////////////////////////////////////////
+
+        if (pixelMatch(pixelIN, pixelBG)) {
+          bufImgOut.setRGB(row, col, 0 /*TransformVideo.DCM_ALPHA_MASK*/ ); // Black with 0xff Alpha Channel
         }
       }
   } // reviseImgOut()
