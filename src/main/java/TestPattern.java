@@ -33,23 +33,19 @@ public class TestPattern extends TransformVideo {
   public boolean execTransform() throws IOException, JCodecException {
     System.out.println("TestPattern.execTransform() VIDEO FILE:  " + vidInFileName);
 
-//    int   frameCount  = 200000;
-    long  frameNo     = 0;
+    frameNo     = 0;
 
-    File file = new File(vidInFileName);  // Open Video File
+    grabIn = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileIn));
+    grabIn.seekToSecondPrecise(0); // Seek to zero second.  At 24 frames/sec we should be around frame 24.
+    TransformVideo.dumpFrameNumber(grabIn);
 
-    FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
-    grab.seekToSecondPrecise(0); // Seek to zero second.  At 24 frames/sec we should be around frame 24.
-    TransformVideo.dumpFrameNumber(grab);
-    Picture picture = null;    // Picture is one frame
-
-    while ((picture = grab.getNativeFrame()) != null) {
-      frameNo = TransformVideo.getFrameNumber(grab);
+    while ((pictureIn = grabIn.getNativeFrame()) != null) {
+      frameNo = TransformVideo.getFrameNumber(grabIn);
 
       if (magicFrame(frameNo)) {
-        TransformVideo.dumpPicture(picture, frameNo);
-        BufferedImage bufIm = AWTUtil.toBufferedImage(picture);  //
-        dumpBufferedImage(bufIm);
+        TransformVideo.dumpPicture(pictureIn, frameNo);
+        bufImgIn = AWTUtil.toBufferedImage(pictureIn);  //
+        dumpBufferedImage(bufImgIn);
       }
     }
 

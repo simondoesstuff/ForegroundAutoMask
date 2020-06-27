@@ -46,9 +46,21 @@ public class Main {
     } // execTransform()
 
 
-    private void execTestPattern(String vidFileName) throws IOException, JCodecException {
+    private void execTestPattern(String[] args) throws IOException, JCodecException {
       System.out.println("Main.execTestPattern() START");
-      tv = new TestPattern(vidFileName);
+
+      if (args.length < 1) {
+        System.out.println("Insufficient number of arguments for command testpattern.  Num=" + args.length);
+        help();
+        return;
+      }
+
+      String vidInFileName = args[0];
+
+      System.out.println("Main.Background() \n"
+              + "FG  '" + vidInFileName   + "'\n");
+
+      tv = new TestPattern(vidInFileName);
       execTransform();  // Execute the specific transform for this derived class
     } // execTestPattern()
 
@@ -63,7 +75,7 @@ public class Main {
 
     private void execBackground(String[] args) throws IOException, JCodecException {
       if (args.length < 3) {
-        System.out.println("Insufficient number of arguments for command.  Num=" + args.length);
+        System.out.println("Insufficient number of arguments for command background.  Num=" + args.length);
         help();
         return;
       }
@@ -106,7 +118,7 @@ public class Main {
 
         switch (cmdHandle.toLowerCase()) {
             case ("-testpattern"):
-                execTestPattern("P:\\Dad\\VideoSoftware\\TestPattern.mp4");
+                execTestPattern(cmdArgs);
                 break;
             case ("-copytest"):
                 execTestCopy("P:\\Dad\\VideoSoftware\\TestPattern.mp4", "P:\\Dad\\VideoSoftware\\TestPatternCopy.mov");
