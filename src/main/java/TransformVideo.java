@@ -29,6 +29,10 @@ public class TransformVideo {
   protected BufferedImage       bufImgBg        = null; // R/W frame image
   protected BufferedImage       bufImgOut       = null; // R/W frame image
   protected long                frameNo         = -1;   // Frame Number
+  protected int                 startFrame      = 0;
+  protected int                 stopFrame       = Integer.MAX_VALUE;
+  protected int                 matchRange      = 10; // Match fg +/- matchRange of bg RGB color
+  protected int                 featherSize     = 2;  // Half the size of the feather box
 
   public static final int DCM_RED_MASK    = 0x00ff0000; // Stollen from BufferedImage
   public static final int DCM_GREEN_MASK  = 0x0000ff00;
@@ -72,6 +76,7 @@ public class TransformVideo {
 
     fileOut = NIOUtils.writableFileChannel(vidOutFileName); // Open Video Output File
     encoder = new AWTSequenceEncoder(fileOut, Rational.R(24, 1));
+//    new AWTSequenceEncoder();
   }
 
 
@@ -100,6 +105,28 @@ public class TransformVideo {
   // UTILITIES (Mostly Static)
   ///////////////////////////////////////////////////////
 
+  public void setFirstLastFame(int start, int stop) {
+    if (stop < start)   // Sanity check
+      return;
+
+    if (start < 0)      // Sanity check
+      return;
+
+    startFrame  = start;
+    stopFrame   = stop;
+  }
+
+  public void setMatchRange(int newRange) {
+    if (newRange > 0)
+      matchRange = newRange;
+  }
+
+
+  public void setFeatherSize(int newRange) {
+    if (newRange > 0)
+      featherSize = newRange;
+  }
+
   public static long getFrameNumber(FrameGrab fg) {
     if (fg == null)
       return 0;
@@ -120,18 +147,30 @@ public class TransformVideo {
 
 
   protected int getInputWidth() {
-    if (pictureIn==null)
-      return 0;
+    if (pictureIn!=null)
+      return pictureIn.getWidth();
 
-    return pictureIn.getWidth();
+    if (pictureBg!=null)
+      return pictureBg.getWidth();
+
+    return 0;
   }
+
 
   protected int getInputHeight() {
-    if (pictureIn==null)
-      return 0;
+    int h = 0;
 
-    return pictureIn.getHeight();
+    if (pictureIn!=null)
+      h = pictureIn.getHeight();
+    else if (pictureBg!=null)
+      h = pictureBg.getHeight();
+
+    if (h > 1080) // Workaround library errors
+      return 1080;
+    else
+      return h;
   }
+
 
   protected static void dumpPicture(Picture p, long frameNumber) {
     if (p == null)
@@ -186,5 +225,85 @@ public class TransformVideo {
   public boolean execTransform() throws IOException, JCodecException {
     System.out.println("Oops! Super class TransformVideo.execTransform() called instead of derived class method");
     return false;
+  }
+
+  ///////////////////////////////////////////////////////////
+  // Feathering Support via boolean flag array.
+  // Flag=true  Background pixel we wish to be transparent
+  // Flag=false Foreground pixel we may have to feather
+  ///////////////////////////////////////////////////////////
+
+  protected boolean fgFlag[][]        = null;
+  protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
+  protected boolean featherBox[][]    = null; // Bounding box around selected pixel
+  protected int     noBgInBox = 0;            // Also don't confuse feather box with feather bed.
+                                              // Feather bed is much more comfortable.
+
+  protected void createFrameFgFlagArray(int width, int height) {
+//    System.out.println("TransformVideo.createFrameFgFlagArray() " + width + " " + height);
+    fgFlag = new boolean[width][height];
+    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize];
+  }
+
+  protected void populateFeatherBox(int w, int h, int xcenter, int ycenter) {
+    int flagx;      // x & y adjusted by sanity checks to that we do not
+    int flagy;      // index into feather box out of bounds.
+    noBgInBox = 0;  // Number of Bg pixes in the feather box
+
+    for (int ybox=-featherSize; ybox<=featherSize; ybox++) {      // Loop box coordinates
+      flagy = ycenter + ybox;     // Translate box coordinates to flag array coordinates
+      if (flagy < 0) flagy=0;     // Lower sanity check
+      if (flagy >= h) flagy=h-1;  // Upper sanity check
+
+      for (int xbox=-featherSize; xbox <= featherSize; xbox++) {  // Loop box coordinates
+        flagx=xcenter + xbox;     // Translate box coordinates to flag array coordinates
+        if (flagx < 0) flagx=0;   // Lower sanity check
+        if (flagx >= w) flagx=w-1;// Upper sanity check
+
+        if (isBg(flagx, flagy)) {
+          featherBox[featherSize+xbox][featherSize+ybox] = true;  // Index translated as it cannot be negative
+          noBgInBox++;
+        } else
+          featherBox[featherSize+xbox][featherSize+ybox] = false;
+      } // for x
+    } // for y
+  } // populateFeatherBox()
+
+
+  protected boolean pixelOnEdge() {
+    if (noBgInBox==0)
+      return false;
+    else
+      return true;
+  }
+
+
+  protected float featherFactor() {
+    return ((featherArea - noBgInBox)/(featherArea));
+  }
+
+
+
+  protected void setFgFlag(int x, int y, boolean flag) {
+    if (fgFlag != null)
+      fgFlag[x][y]=flag;
+  }
+
+
+  protected boolean getFgFlag(int x, int y) {
+    if (fgFlag == null)
+      return false;
+    else
+      return fgFlag[x][y];
+  }
+
+
+  protected boolean isFg(int x, int y) {
+    return !getFgFlag(x, y);
+  }
+
+
+  protected boolean isBg(int x, int y) {
+    return getFgFlag(x, y);
   }
 } // class

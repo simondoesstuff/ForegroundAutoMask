@@ -80,9 +80,9 @@ public class Main {
         return;
       }
 
-      String vidInFileName = args[0];
+      String vidInFileName  = args[0];
       String vidOutFileName = args[1];
-      String vidBgFileName = args[2];
+      String vidBgFileName  = args[2];
 
       System.out.println("Main.Background() \n"
               + "FG  '" + vidInFileName   + "'\n"
@@ -90,6 +90,45 @@ public class Main {
               + "BG  '" + vidBgFileName   + "'");
 
       tv = new BackGroundAvailable(vidInFileName, vidOutFileName, vidBgFileName);
+
+
+      String matchRange     = "";
+      String featherRange   = "";
+
+      try {
+        int fmStart   = -1;
+        int fmStop    = -1;
+
+        if (args.length >= 4) {
+          fmStart = Integer.parseInt(args[3]);
+
+          if (args.length >= 5)
+            fmStop = Integer.parseInt(args[4]);
+          else
+            fmStop = Integer.MAX_VALUE;
+
+          tv.setFirstLastFame(fmStart, fmStop);
+        }
+
+        if (args.length >= 6) {
+          tv.setMatchRange(Integer.parseInt(args[5]));
+        }
+
+        if (args.length >= 7) {
+          tv.setFeatherSize(Integer.parseInt(args[6]));
+        }
+
+      } catch (Exception e) {
+        System.out.println("execBackground() Illegal integer in command line arguments");
+        return;
+      }
+
+      System.out.println("Main.Background() \n"
+              + "Frame.Start:\t"  + tv.startFrame   + "\n"
+              + "Frame.Stop:\t\t"   + tv.stopFrame    + "\n"
+              + "Match.Range:\t"  + tv.matchRange   + "\n"
+              + "Feather.Size:\t" + tv.featherSize  + "\n");
+
       execTransform();  // Execute the specific transform for this derived class
     } // execBackground()
 
@@ -99,7 +138,7 @@ public class Main {
                 + "\nUSAGE:\n"
                 + "-testpattern\n"
                 + "-copytest\n"
-                + "-background <foregroundMP4> <outputMov> <backgroundMP4>  "
+                + "-background <foregroundMP4> <outputMov> <backgroundMP4> <StartFrame> <EndFrame> <MatchRange> <FeatherSize> "
         );
     }
 
