@@ -111,11 +111,15 @@ public class Main {
         }
 
         if (args.length >= 6) {
-          tv.setMatchRange(Integer.parseInt(args[5]));
+          tv.setBgMatchRange(Integer.parseInt(args[5]));
         }
 
         if (args.length >= 7) {
-          tv.setFeatherSize(Integer.parseInt(args[6]));
+          tv.setFgMatchRange(Integer.parseInt(args[6]));
+        }
+
+        if (args.length >= 8) {
+          tv.setFeatherSize(Integer.parseInt(args[7]));
         }
 
       } catch (Exception e) {
@@ -125,8 +129,9 @@ public class Main {
 
       System.out.println("Main.Background() \n"
               + "Frame.Start:\t"  + tv.startFrame   + "\n"
-              + "Frame.Stop:\t\t"   + tv.stopFrame    + "\n"
-              + "Match.Range:\t"  + tv.matchRange   + "\n"
+              + "Frame.Stop:\t\t"   + tv.stopFrame  + "\n"
+              + "Match.Range:\t"  + tv.bgMatchRange + "\n"
+              + "Match.Range:\t"  + tv.fgMatchRange + "\n"
               + "Feather.Size:\t" + tv.featherSize  + "\n");
 
       execTransform();  // Execute the specific transform for this derived class
@@ -138,7 +143,7 @@ public class Main {
                 + "\nUSAGE:\n"
                 + "-testpattern\n"
                 + "-copytest\n"
-                + "-background <foregroundMP4> <outputMov> <backgroundMP4> <StartFrame> <EndFrame> <MatchRange> <FeatherSize> "
+                + "-background <foregroundMP4> <outputMov> <backgroundMP4> <StartFrame> <EndFrame> <bgMatchRange> <fgMatchRange> <FeatherSize> "
         );
     }
 

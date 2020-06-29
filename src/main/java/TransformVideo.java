@@ -31,7 +31,8 @@ public class TransformVideo {
   protected long                frameNo         = -1;   // Frame Number
   protected int                 startFrame      = 0;
   protected int                 stopFrame       = Integer.MAX_VALUE;
-  protected int                 matchRange      = 10; // Match fg +/- matchRange of bg RGB color
+  protected int                 bgMatchRange    = 4;  // Pixel RGB = BG color +/- bgMatchRange to be a bg pixel
+  protected int                 fgMatchRange    = 30; // Pixel RGB = BG color distance of at least fgMatchRange
   protected int                 featherSize     = 2;  // Half the size of the feather box
 
   public static final int DCM_RED_MASK    = 0x00ff0000; // Stollen from BufferedImage
@@ -116,9 +117,15 @@ public class TransformVideo {
     stopFrame   = stop;
   }
 
-  public void setMatchRange(int newRange) {
+  public void setBgMatchRange(int newRange) {
     if (newRange > 0)
-      matchRange = newRange;
+      bgMatchRange = newRange;
+  }
+
+
+  public void setFgMatchRange(int newRange) {
+    if (newRange > 0)
+      fgMatchRange = newRange;
   }
 
 
@@ -233,14 +240,17 @@ public class TransformVideo {
   // Flag=false Foreground pixel we may have to feather
   ///////////////////////////////////////////////////////////
 
-  protected boolean fgFlag[][]        = null;
+  protected boolean bgFlag[][]        = null; // Pixel is unambiguously a background pixel
+  protected boolean fgFlag[][]        = null; // Pixel is unambiguously a foreground pixel
+
   protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
   protected boolean featherBox[][]    = null; // Bounding box around selected pixel
   protected int     noBgInBox = 0;            // Also don't confuse feather box with feather bed.
-                                              // Feather bed is much more comfortable.
+  protected int     noFgInBox = 0;            // Feather bed is much more comfortable.
 
   protected void createFrameFgFlagArray(int width, int height) {
 //    System.out.println("TransformVideo.createFrameFgFlagArray() " + width + " " + height);
+    bgFlag = new boolean[width][height];
     fgFlag = new boolean[width][height];
     featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize];
   }
@@ -249,6 +259,7 @@ public class TransformVideo {
     int flagx;      // x & y adjusted by sanity checks to that we do not
     int flagy;      // index into feather box out of bounds.
     noBgInBox = 0;  // Number of Bg pixes in the feather box
+    noFgInBox = 0;
 
     for (int ybox=-featherSize; ybox<=featherSize; ybox++) {      // Loop box coordinates
       flagy = ycenter + ybox;     // Translate box coordinates to flag array coordinates
@@ -265,23 +276,39 @@ public class TransformVideo {
           noBgInBox++;
         } else
           featherBox[featherSize+xbox][featherSize+ybox] = false;
+
+        if (isFg(flagx, flagy)) {
+//          feath?erBox[fe?atherSize+xbox][featherSize+ybox] = true;  // Index translated as it cannot be negative
+          noFgInBox++;
+        }
+//        else
+//          featherBox[featherSize+xbox][featherSize+ybox] = false;
       } // for x
     } // for y
   } // populateFeatherBox()
 
 
-  protected boolean pixelOnEdge() {
-    if (noBgInBox==0)
-      return false;
-    else
-      return true;
-  }
+//  protected boolean pixelOnEdge() {
+//    if (noBgInBox==0)
+//      return false;
+//    else
+//      return true;
+//  }
 
 
   protected float featherFactor() {
-    return ((featherArea - noBgInBox)/(featherArea));
+    int area = noBgInBox + noFgInBox;
+
+    if (area == 0)  // Not supposed to happen
+      return 1.0f;
+
+    return ((noFgInBox)/(area));
   }
 
+  protected void setBgFlag(int x, int y, boolean flag) {
+    if (bgFlag != null)
+      bgFlag[x][y]=flag;
+  }
 
 
   protected void setFgFlag(int x, int y, boolean flag) {
@@ -298,12 +325,28 @@ public class TransformVideo {
   }
 
 
+  protected boolean getBgFlag(int x, int y) {
+    if (bgFlag == null)
+      return false;
+    else
+      return bgFlag[x][y];
+  }
+
+
   protected boolean isFg(int x, int y) {
-    return !getFgFlag(x, y);
+    return getFgFlag(x, y);
   }
 
 
   protected boolean isBg(int x, int y) {
-    return getFgFlag(x, y);
+    return getBgFlag(x, y);
+  }
+
+  protected boolean containsFgPixels() {
+    return  (noFgInBox > 0);
+  }
+
+  protected boolean containsBgPixels() {
+    return  (noFgInBox > 0);
   }
 } // class
