@@ -37,26 +37,25 @@ public class BackGroundAvailable extends TransformVideo {
   //    within bgMatchRange ticks of the background primary color.
   /////////////////////////////////////////////////////////////////////
 
-  private boolean primaryBgMatch(int fgPrimary, int bgPrimary) {
+  private boolean primaryBgMatch(int pxPrimary, int bgPrimary) {
 
     int left  = bgPrimary - bgMatchRange;
     int right = bgPrimary + bgMatchRange;
 
-    if ((fgPrimary >=left) && (fgPrimary<=right))
+    if ((pxPrimary >=left) && (pxPrimary<=right))
       return true;
     else
       return false;
   } // primaryBgMatch()
 
 
-  private boolean primaryFgMatch(int fgPrimary, int bgPrimary) {
-
+  private boolean primaryFgMatch(int pxPrimary, int bgPrimary) {
     int left  = bgPrimary - fgMatchRange;
     int right = bgPrimary + fgMatchRange;
 
     // The question is, is this pixel a lot different than the Bg color?
 
-    if ((fgPrimary <left) || (fgPrimary>right))
+    if ((pxPrimary <left) || (pxPrimary>right))
       return true;
     else
       return false;
@@ -66,28 +65,37 @@ public class BackGroundAvailable extends TransformVideo {
   // Return true if the foreground pixel is an
   // approximate match to the background pixel.
 
-  private boolean pixelBgMatch(int fg, int bg, int x, int y, int w, int h) {
+  private boolean pixelBgMatch(int px, int bg, int x, int y, int w, int h) {
+//    System.out.println("pixelBgMatch()"
+//            + "  bgFlag[][]: " + (bgFlag==null ? "NULL" : "NonNUll")
+//            + "  px: "  + px
+//            + "  bg: "  + bg
+//            + "  x: "   + x
+//            + "  y: "   + y
+//            + "  w: "   + w
+//            + "  y: "   + y);
+
     if (x==0 || y==0)         // Edge of the frame?
       return true;            // Force hard core bg on the frame edge
 
     if (x==(w-1) || y==(h-1)) // Other edge of the frame?
       return true;            // Force hard core bg on the frame edge
 
-    int fgRed = getRed(fg);   // Get Foreground primary colors
-    int fgGrn = getGreen(fg);
-    int fgBlu = getBlue(fg);
+    int pxRed = getRed(px);   // Get Foreground primary colors
+    int pxGrn = getGreen(px);
+    int pxBlu = getBlue(px);
 
     int bgRed = getRed(bg);   // Get Background primary colors
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (!primaryBgMatch(fgRed, bgRed))
+    if (!primaryBgMatch(pxRed, bgRed))
       return false;
 
-    if (!primaryBgMatch(fgGrn, bgGrn))
+    if (!primaryBgMatch(pxGrn, bgGrn))
       return false;
 
-    if (!primaryBgMatch(fgBlu, bgBlu))
+    if (!primaryBgMatch(pxBlu, bgBlu))
       return false;
 
     return true;
@@ -95,30 +103,44 @@ public class BackGroundAvailable extends TransformVideo {
 
 
 
-  private boolean pixelFgMatch(int fg, int bg) {
-    int fgRed = getRed(fg);   // Get Foreground primary colors
-    int fgGrn = getGreen(fg);
-    int fgBlu = getBlue(fg);
+  private boolean pixelFgMatch(int px, int bg, int x, int y, int w, int h) {
+//    System.out.println("pixelBgMatch()"
+//            + "  fgFlag[][]: " + (fgFlag==null ? "NULL" : "NonNUll")
+//            + "  px: "  + px
+//            + "  bg: "  + bg
+//            + "  x: "   + x
+//            + "  y: "   + y
+//            + "  w: "   + w
+//            + "  y: "   + y);
+
+    if (x==0 || y==0)           // Edge of the frame is dedicated to BG
+      return false;             // Force hard core bg on the frame edge
+
+    if (x==(w-1) || y==(h-1))   // Other edge of the frame?
+      return false;             // Force hard core bg on the frame edge
+
+    int pxRed = getRed(px);     // Get Foreground primary colors
+    int pxGrn = getGreen(px);
+    int pxBlu = getBlue(px);
 
     int bgRed = getRed(bg);   // Get Background primary colors
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (primaryFgMatch(fgRed, bgRed))
+    if (primaryFgMatch(pxRed, bgRed))
       return true;
 
-    if (primaryFgMatch(fgGrn, bgGrn))
+    if (primaryFgMatch(pxGrn, bgGrn))
       return true;
 
-    if (primaryFgMatch(fgBlu, bgBlu))
+    if (primaryFgMatch(pxBlu, bgBlu))
       return true;
 
     return false;
   } // pixelFgMatch()
 
-//  private void reviseFgF() {
-//    createFrameFgFlagArray(getInputWidth(), getInputHeight());
-//  }
+
+
 
 
   protected int getFeatheredPixel(int x, int y, float featherFactor) {
@@ -137,7 +159,7 @@ public class BackGroundAvailable extends TransformVideo {
     int Height  = getInputHeight();
 
     for (int y=0; y<Height; y++) {      // Loop through all pixels for step 1 & step 2.
-      for (int x = 0; x < Width; x++) {
+      for (int x = 0; x < Width; x++) { // Frame coordinates
 //        System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
         int pixelIN = bufImgIn.getRGB(x, y); // pixel(x, y)
         int pixelBG = bufImgBg.getRGB(x, y);
@@ -170,10 +192,14 @@ public class BackGroundAvailable extends TransformVideo {
         else
           setBgFlag(x, y, false);           // Maybe a Fg pixel
 
-        if (pixelFgMatch(pixelIN, pixelBG))
+        if (pixelFgMatch(pixelIN, pixelBG, x, y, Width, Height))
           setFgFlag(x, y,true);             // Fg pixel
         else
           setFgFlag(x, y, false);            // Maybe a Bg pixel
+
+        if (isBg(x,y) && isFg(x,y))
+          System.out.println("FG&BG1!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);if (isBg(x,y) && isFg(x,y))
+          System.exit(0);
       } // for x
     } // for y
 
@@ -187,36 +213,41 @@ public class BackGroundAvailable extends TransformVideo {
         /////////////////////////////////////////////////////////////////////////////////
 //      System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
 
-        if (isBg(x,y) && isFg(x,y))
-          System.out.println("FG&BG!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);
+        if (isBg(x,y) && isFg(x,y)) {
+          System.out.println("FG&BG2!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);
+          System.exit(0);
+        }
 
 //
         if (isBg(x, y))
           bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Simple case.  Do not compute feather box.  Set to black
         else if (isFg(x, y))
           bufImgOut.setRGB(x, y, TransformVideo.DCM_GREEN_MASK);  // TEMP
-        else
-          bufImgOut.setRGB(x, y, TransformVideo.DCM_RED_MASK);  // TEMP
-//          ;                                                       // Simple case. Do not compute featherBox.  Noop as the BufImgOut already contains the copy of the original video
-////        else {
-//          // All other cases need to know about the surrounding pixels.  Therefore, we will calculate the feather box now.
-//          // In addition to the box (which we are not actually using yet) we have statistics on the number of fg pixels in
-//          // the box and the number of bg pixels in the box.   All of one type implies certain things.  A mixture causes
-//          // use to actually interpolate (feather) the result.
+        else {
+          bufImgOut.setRGB(x, y, TransformVideo.DCM_RED_MASK|DCM_GREEN_SHIFT);  // TEMP
+
+          // All other cases need to know about the surrounding pixels.  Therefore, we will calculate the feather box now.
+          // In addition to the box (which we are not actually using yet) we have statistics on the number of fg pixels in
+          // the box and the number of bg pixels in the box.   All of one type implies certain things.  A mixture causes
+          // use to actually interpolate (feather) the result.
 //
-//          populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
+          populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
 //
-//          if (containsBgPixels() && !containsFgPixels())
-//            bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Black with 0xff Alpha Channel or Green etc.
-//          else if (containsFgPixels() && !containsBgPixels())
-//            ;                                                       // Noop as the BufImgOut already contains the copy of the original video
-//          else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
-//            ;                                                       // NOOP yields original pixel color
-//          else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
-//              int newRGB = getFeatheredPixel(x, y, featherFactor());
-//              bufImgOut.setRGB(x, y, newRGB);     // New feathered color
-////          } // else
-//        } // else
+          if (containsBgPixels() && !containsFgPixels()) {
+//            System.out.println("NonLinear Force to Black");
+            bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Black with 0xff Alpha Channel or Green etc.
+          }
+          else if (containsFgPixels() && !containsBgPixels())
+            ;                                                       // Noop as the BufImgOut already contains the copy of the original video
+          else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
+            ;                                                       // NOOP yields original pixel color
+          else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
+            float ff = featherFactor();
+            int newRGB = getFeatheredPixel(x, y, ff);
+            System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
+            bufImgOut.setRGB(x, y, newRGB);     // New feathered color
+          } // else
+        } // else
       } // for x
     } // for y
   } // reviseImgOutFrame()

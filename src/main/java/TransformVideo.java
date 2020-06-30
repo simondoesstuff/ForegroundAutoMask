@@ -240,8 +240,8 @@ public class TransformVideo {
   // Flag=false Foreground pixel we may have to feather
   ///////////////////////////////////////////////////////////
 
-  protected boolean bgFlag[][]        = null; // Pixel is unambiguously a background pixel
-  protected boolean fgFlag[][]        = null; // Pixel is unambiguously a foreground pixel
+  protected boolean bgFlag[][]        = null; // Pixel is unambiguously a background pixel (frame coordinates)
+  protected boolean fgFlag[][]        = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
 
   protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
   protected boolean featherBox[][]    = null; // Bounding box around selected pixel
@@ -250,9 +250,9 @@ public class TransformVideo {
 
   protected void createFrameFgFlagArray(int width, int height) {
 //    System.out.println("TransformVideo.createFrameFgFlagArray() " + width + " " + height);
-    bgFlag = new boolean[width][height];
-    fgFlag = new boolean[width][height];
-    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize];
+    bgFlag = new boolean[width][height];  // Frame coordinates
+    fgFlag = new boolean[width][height];  // Frame coordinates
+    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
   }
 
   protected void populateFeatherBox(int w, int h, int xcenter, int ycenter) {
@@ -305,19 +305,21 @@ public class TransformVideo {
     return ((noFgInBox)/(area));
   }
 
-  protected void setBgFlag(int x, int y, boolean flag) {
+  protected void setBgFlag(int x, int y,    // Frame coordinates
+                           boolean flag) {  // true = is a BG pixel color
     if (bgFlag != null)
       bgFlag[x][y]=flag;
   }
 
 
-  protected void setFgFlag(int x, int y, boolean flag) {
+  protected void setFgFlag(int x, int y,    // Frame coordinates
+                           boolean flag) {  // true == is a FG pixel color
     if (fgFlag != null)
       fgFlag[x][y]=flag;
   }
 
 
-  protected boolean getFgFlag(int x, int y) {
+  protected boolean getFgFlag(int x, int y) { // Frame coordinates
     if (fgFlag == null)
       return false;
     else
@@ -325,7 +327,7 @@ public class TransformVideo {
   }
 
 
-  protected boolean getBgFlag(int x, int y) {
+  protected boolean getBgFlag(int x, int y) {   // Frame coordinates
     if (bgFlag == null)
       return false;
     else
@@ -333,12 +335,12 @@ public class TransformVideo {
   }
 
 
-  protected boolean isFg(int x, int y) {
+  protected boolean isFg(int x, int y) {        // Frame coordinates
     return getFgFlag(x, y);
   }
 
 
-  protected boolean isBg(int x, int y) {
+  protected boolean isBg(int x, int y) {        // Frame coordinates
     return getBgFlag(x, y);
   }
 
@@ -347,6 +349,6 @@ public class TransformVideo {
   }
 
   protected boolean containsBgPixels() {
-    return  (noFgInBox > 0);
+    return  (noBgInBox > 0);
   }
 } // class
