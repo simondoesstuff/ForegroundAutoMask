@@ -298,11 +298,16 @@ public class TransformVideo {
 
   protected float featherFactor() {
     int area = noBgInBox + noFgInBox;
+    float ff;
 
-    if (area == 0)  // Not supposed to happen
-      return 1.0f;
+    if (area == 0) {  // Not supposed to happen
+      ff = 1.0f;
+    }
+    else
+      ff = (1.0f * noFgInBox)/(area);
 
-    return ((noFgInBox)/(area));
+//    System.out.println("TransformVideo.featherFactor() noFgInBox: " + noFgInBox + "  noBgInBox: " + noBgInBox + "  area: " + area + "  ff: " + ff);
+    return ff;
   }
 
   protected void setBgFlag(int x, int y,    // Frame coordinates

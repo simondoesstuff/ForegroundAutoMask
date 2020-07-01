@@ -221,31 +221,24 @@ public class BackGroundAvailable extends TransformVideo {
 //
         if (isBg(x, y))
           bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Simple case.  Do not compute feather box.  Set to black
-        else if (isFg(x, y))
-          bufImgOut.setRGB(x, y, TransformVideo.DCM_GREEN_MASK);  // TEMP
         else {
-          bufImgOut.setRGB(x, y, TransformVideo.DCM_RED_MASK|DCM_GREEN_SHIFT);  // TEMP
-
-          // All other cases need to know about the surrounding pixels.  Therefore, we will calculate the feather box now.
-          // In addition to the box (which we are not actually using yet) we have statistics on the number of fg pixels in
-          // the box and the number of bg pixels in the box.   All of one type implies certain things.  A mixture causes
-          // use to actually interpolate (feather) the result.
-//
           populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
-//
+
           if (containsBgPixels() && !containsFgPixels()) {
 //            System.out.println("NonLinear Force to Black");
-            bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Black with 0xff Alpha Channel or Green etc.
-          }
-          else if (containsFgPixels() && !containsBgPixels())
-            ;                                                       // Noop as the BufImgOut already contains the copy of the original video
-          else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
-            ;                                                       // NOOP yields original pixel color
-          else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
-            float ff = featherFactor();
-            int newRGB = getFeatheredPixel(x, y, ff);
-            System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
-            bufImgOut.setRGB(x, y, newRGB);     // New feathered color
+            bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Force to Black with 0xff Alpha Channel or Green etc.
+          } else {
+            if (isFg(x, y) && !containsBgPixels())                  // FG pixel and No BG pixels
+              ;                                                       // Let's see the video fg how about
+//            bufImgOut.setRGB(x, y, TransformVideo.DCM_GREEN_MASK);  // TEMP
+            else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
+              ;                                                       // NOOP yields original pixel color
+            else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
+              float ff = featherFactor();
+              int newRGB = getFeatheredPixel(x, y, ff);
+//              System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
+              bufImgOut.setRGB(x, y, newRGB);     // New feathered color
+            } // else
           } // else
         } // else
       } // for x
