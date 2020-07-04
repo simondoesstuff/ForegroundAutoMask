@@ -144,13 +144,18 @@ public class BackGroundAvailable extends TransformVideo {
 
 
   protected int getFeatheredPixel(int x, int y, float featherFactor) {
-    int originalFg = bufImgIn.getRGB(x, y); // pixel(x, y)
+    float bgff    = 1.0f - featherFactor;  // 100% - featherFactor
+    int   pxColor = bufImgIn.getRGB(x, y); // pixel(x, y)
 
-    int newRed = (int)((featherFactor * getRed(originalFg))   +.5);
-    int newGrn = (int)((featherFactor * getGreen(originalFg)) +.5);
-    int newBlu = (int)((featherFactor * getBlue(originalFg))  +.5);
+    int pxRed = (int)((featherFactor * getRed(pxColor))   +.5);
+    int pxGrn = (int)((featherFactor * getGreen(pxColor)) +.5);
+    int pxBlu = (int)((featherFactor * getBlue(pxColor))  +.5);
 
-    return rgbToPixel(newRed, newGrn, newBlu);
+    int bgRed = (int)((bgff * getRed(transColor))   +.5);
+    int bgGrn = (int)((bgff * getGreen(transColor)) +.5);
+    int bgBlu = (int)((bgff * getBlue(transColor))  +.5);
+
+    return rgbToPixel(bgRed+pxRed, bgGrn+pxGrn, bgBlu+pxBlu);
   }
 
 
@@ -220,19 +225,21 @@ public class BackGroundAvailable extends TransformVideo {
 
 //
         if (isBg(x, y))
-          bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Simple case.  Do not compute feather box.  Set to black
+          bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
         else {
           populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
+          populateFeatherRowCol(Width, Height, x, y);
 
           if (containsBgPixels() && !containsFgPixels()) {
 //            System.out.println("NonLinear Force to Black");
-            bufImgOut.setRGB(x, y, TransformVideo.DCM_ALPHA_MASK);  // Force to Black with 0xff Alpha Channel or Green etc.
+            bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
           } else {
             if (isFg(x, y) && !containsBgPixels())                  // FG pixel and No BG pixels
               ;                                                       // Let's see the video fg how about
-//            bufImgOut.setRGB(x, y, TransformVideo.DCM_GREEN_MASK);  // TEMP
             else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
               ;                                                       // NOOP yields original pixel color
+            else if (muteRow(x,y) || muteCol(x,y))
+              bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
               float ff = featherFactor();
               int newRGB = getFeatheredPixel(x, y, ff);
@@ -286,9 +293,14 @@ public class BackGroundAvailable extends TransformVideo {
       bufImgBg  = AWTUtil.toBufferedImage(pictureBg);   // Bg frame
       createFrameFgFlagArray(getInputWidth(), getInputHeight());  // Used for feathering
 
-      ///////////////////////////////////////////////////////////
+      /////////////////////////////////////////////////////////////////////
       // Loop through all input frames and send to output encoder
-      ///////////////////////////////////////////////////////////
+      //  Mike McPherson:
+      //    15 30 5 Edgy if green, perfect if black
+      //    20 40 5 Much better.  Still some bg and jaggy glow around body
+      //    25 45 6 Better.  Possible facial deterioration
+      //    20 50 6
+      /////////////////////////////////////////////////////////////////////
 
       while ((pictureIn = grabIn.getNativeFrame()) != null) {
         bufImgIn  = AWTUtil.toBufferedImage(pictureIn);       // In frame

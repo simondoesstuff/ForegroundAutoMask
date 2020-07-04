@@ -90,49 +90,58 @@ public class Main {
               + "BG  '" + vidBgFileName   + "'");
 
       tv = new BackGroundAvailable(vidInFileName, vidOutFileName, vidBgFileName);
-
-
-      String matchRange     = "";
-      String featherRange   = "";
+      String  currentArg = "uninitialized";
 
       try {
         int fmStart   = -1;
         int fmStop    = -1;
 
         if (args.length >= 4) {
-          fmStart = Integer.parseInt(args[3]);
+          fmStart = Integer.parseInt(currentArg = args[3]);
 
           if (args.length >= 5)
-            fmStop = Integer.parseInt(args[4]);
+            fmStop = Integer.parseInt(currentArg = args[4]);
           else
             fmStop = Integer.MAX_VALUE;
 
-          tv.setFirstLastFame(fmStart, fmStop);
+          tv.setFirstLastFrame(fmStart, fmStop);
         }
 
         if (args.length >= 6) {
-          tv.setBgMatchRange(Integer.parseInt(args[5]));
+          tv.setBgMatchRange(Integer.parseInt(currentArg = args[5]));
         }
 
         if (args.length >= 7) {
-          tv.setFgMatchRange(Integer.parseInt(args[6]));
+          tv.setFgMatchRange(Integer.parseInt(currentArg = args[6]));
         }
 
         if (args.length >= 8) {
-          tv.setFeatherSize(Integer.parseInt(args[7]));
+//          System.out.println("Main.Background() FeatherSize arg '" + args[7] + "'");
+          int i = Integer.parseInt(currentArg = args[7]);
+          tv.setFeatherSize(i);
+//          System.out.println("Main.Background() i: " + i);
+        }
+
+        if (args.length >= 9) {
+//          System.out.println("Main.Background() transcolor arg '" + args[8] + "'");
+          Long c = Long.decode(currentArg = args[8]);
+          tv.setTransColor(c);
         }
 
       } catch (Exception e) {
-        System.out.println("execBackground() Illegal integer in command line arguments");
+        System.out.println("execBackground() Illegal integer in command line arguments '" + currentArg + "'");
+//        tv.setTransColor(Integer.parseInt(args[8], 16));
+        help();
         return;
       }
 
       System.out.println("Main.Background() \n"
-              + "Frame.Start:\t"  + tv.startFrame   + "\n"
-              + "Frame.Stop:\t\t"   + tv.stopFrame  + "\n"
-              + "Match.Range:\t"  + tv.bgMatchRange + "\n"
-              + "Match.Range:\t"  + tv.fgMatchRange + "\n"
-              + "Feather.Size:\t" + tv.featherSize  + "\n");
+              + "Frame.Start:\t"        + tv.startFrame   + "\n"
+              + "Frame.Stop:\t\t"         + tv.stopFrame  + "\n"
+              + "Match.Range:\t"        + tv.bgMatchRange + "\n"
+              + "Match.Range:\t"        + tv.fgMatchRange + "\n"
+              + "Feather.Size:\t"       + tv.featherSize  + "\n"
+              + "Transparency Color:\t" + TransformVideo.formatPixel(tv.transColor));
 
       execTransform();  // Execute the specific transform for this derived class
     } // execBackground()
@@ -143,7 +152,7 @@ public class Main {
                 + "\nUSAGE:\n"
                 + "-testpattern\n"
                 + "-copytest\n"
-                + "-background <foregroundMP4> <outputMov> <backgroundMP4> <StartFrame> <EndFrame> <bgMatchRange> <fgMatchRange> <FeatherSize> "
+                + "-background <foregroundMP4> <outputMov> <backgroundMP4> <StartFrame> <EndFrame> <bgMatchRange> <fgMatchRange> <FeatherSize> <TransparentColorHex>"
         );
     }
 

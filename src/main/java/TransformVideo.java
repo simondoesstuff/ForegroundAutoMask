@@ -34,6 +34,7 @@ public class TransformVideo {
   protected int                 bgMatchRange    = 4;  // Pixel RGB = BG color +/- bgMatchRange to be a bg pixel
   protected int                 fgMatchRange    = 30; // Pixel RGB = BG color distance of at least fgMatchRange
   protected int                 featherSize     = 2;  // Half the size of the feather box
+  protected int                 transColor      = DCM_ALPHA_MASK|DCM_GREEN_MASK;  // Transparency Color
 
   public static final int DCM_RED_MASK    = 0x00ff0000; // Stollen from BufferedImage
   public static final int DCM_GREEN_MASK  = 0x0000ff00;
@@ -106,7 +107,7 @@ public class TransformVideo {
   // UTILITIES (Mostly Static)
   ///////////////////////////////////////////////////////
 
-  public void setFirstLastFame(int start, int stop) {
+  public void setFirstLastFrame(int start, int stop) {
     if (stop < start)   // Sanity check
       return;
 
@@ -133,6 +134,13 @@ public class TransformVideo {
     if (newRange > 0)
       featherSize = newRange;
   }
+
+
+  public void setTransColor(long transparentColor) {
+    if (transparentColor >= 0 && transparentColor < 0x0ffffffff)
+      transColor = (int)transparentColor;
+  }
+
 
   public static long getFrameNumber(FrameGrab fg) {
     if (fg == null)
@@ -254,6 +262,53 @@ public class TransformVideo {
     fgFlag = new boolean[width][height];  // Frame coordinates
     featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
   }
+
+  int FgInRow=0;
+  int FgInCol=0;
+  int BgInRow=0;
+  int BgInCol=0;
+
+  // Generate statistics for # of Fg and Bg pixels in the current
+  // column and row.  Intended to be used to help remove unwanted noise.
+
+  protected void populateFeatherRowCol(int w, int h, int xcenter, int ycenter) {
+    FgInRow=FgInCol=BgInRow=BgInCol=0;
+
+    for (int x=0; x<w; x++) { // Walk the row
+      if (isBg(x,ycenter))
+        BgInRow++;
+
+      if (isFg(x,ycenter))
+        FgInRow++;
+    } // for x
+
+    for (int y=0; y<h; y++) { // Walk the row
+      if (isBg(xcenter,y))
+        BgInCol++;
+
+      if (isFg(xcenter,y))
+        FgInCol++;
+    } // for x
+  }
+
+  boolean muteRow(int x, int y) {
+    if (isFg(x,y))
+      return false;                          // Don't mute Fg pixel
+    else if (BgInRow > 100 && FgInRow <20)
+      return true;
+    else
+      return false;
+  }
+
+  boolean muteCol(int x, int y) {
+    if (isFg(x,y))
+      return false;                          // Don't mute Fg pixel
+    else if (BgInCol > 100 && FgInCol <20)
+      return true;
+    else
+      return false;
+  }
+
 
   protected void populateFeatherBox(int w, int h, int xcenter, int ycenter) {
     int flagx;      // x & y adjusted by sanity checks to that we do not
