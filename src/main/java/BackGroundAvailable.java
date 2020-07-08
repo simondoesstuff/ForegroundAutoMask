@@ -3,6 +3,9 @@ import org.jcodec.common.io.NIOUtils;
 import org.jcodec.scale.AWTUtil;
 
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class BackGroundAvailable extends TransformVideo {
     /////////////////////////////////////////////////////////////////////
@@ -147,13 +150,25 @@ public class BackGroundAvailable extends TransformVideo {
         return rgbToPixel(bgRed + pxRed, bgGrn + pxGrn, bgBlu + pxBlu);
     }
 
+    // a tiny class that is just used to wrap arguments going into the 2 phase methods (for private use only)
+    private class FrameSection {
+        int wStart, wEnd, hStart, hEnd;
 
-    private void reviseImgOutFrame() {
-        int Width = getInputWidth();
-        int Height = getInputHeight();
+        public FrameSection(int wStart, int wEnd, int hStart, int hEnd) {
+            this.wStart = Math.max(wStart, 0);      // if the minimum width is less than 0, use 0.
+            this.wEnd = Math.min(wEnd, getInputWidth());        // if the maximum width is > screen width, use screenWidth.
 
-        for (int y = 0; y < Height; y++) {      // Loop through all pixels for step 1 & step 2.
-            for (int x = 0; x < Width; x++) { // Frame coordinates
+            this.hStart = Math.max(hStart, 0);
+            this.hEnd = Math.min(hEnd, getInputWidth());
+        }
+    }
+
+    private void reviseImgOutPhase1(FrameSection s) {
+        int Width = s.wEnd;
+        int Height = s.hEnd;
+
+        for (int y = s.hStart; y < Height; y++) {      // Loop through all pixels for step 1 & step 2.
+            for (int x = s.wStart; x < Width; x++) { // Frame coordinates
 //        System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
                 int pixelIN = bufImgIn.getRGB(x, y); // pixel(x, y)
                 int pixelBG = bufImgBg.getRGB(x, y);
@@ -197,9 +212,14 @@ public class BackGroundAvailable extends TransformVideo {
                     System.exit(0);
             } // for x
         } // for y
+    } // reviseImgOutPhase1()
 
-        for (int y = 0; y < Height; y++) {     // Loop through all pixels for step 1 & step 2.
-            for (int x = 0; x < Width; x++) {
+    private void reviseImgOutPhase2(FrameSection s) {
+        int Width = s.wEnd;
+        int Height = s.hEnd;
+
+        for (int y = s.hStart; y < Height; y++) {     // Loop through all pixels for step 1 & step 2.
+            for (int x = s.wStart; x < Width; x++) {
                 /////////////////////////////////////////////////////////////////////////////////
                 //    STEP3: Determine the color based upon the Bg flag array, the Fg flag array,
                 //           whether the surrounding pixels contain bg or fb pixes.
@@ -240,7 +260,43 @@ public class BackGroundAvailable extends TransformVideo {
                 } // else
             } // for x
         } // for y
-    } // reviseImgOutFrame()
+    }
+
+    private void reviseImgOutFrame() {
+        Future<?>[] processes = new Future<?>[Main.NTHREADS];
+
+        int width = getInputWidth();
+        int shift = getInputHeight() / Main.NTHREADS;       // uses integer math, expect sections to be a bit too small.
+
+        int prevMax = 0;
+
+        for (int i = 0; i < Main.NTHREADS; i++) {
+            // the section can be the prevMax and the prevMax + shift because the beginning of the range is inclusive and the end of exclusive by the nature of a for loop
+            FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+            processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s));         // ignite thread i
+        }
+
+        ////////////////////////////////////////////////////////////// WAIT FOR PHASE 1 COMPLETION
+
+        for (Future<?> process : processes) {
+            // the following code wait for all processes to complete. There should never be an error thrown, but in the case that it happens, it will be printed instead of thrown.
+
+            try {
+                process.get();      // this is a blocking call
+            } catch (InterruptedException | ExecutionException | CancellationException e) {
+                e.printStackTrace();
+            }
+        }
+
+        ////////////////////////////////////////////////////////////// BEGIN PHASE 2
+
+        prevMax = 0;
+
+        for (int i = 0; i < Main.NTHREADS; i++) {
+            FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+            processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase2(s));         // ignite thread i
+        }
+    } // reviseImgOutFrame
 
 
     ///////////////////////////////////////////////////////////////////
