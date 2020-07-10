@@ -138,9 +138,9 @@ public class Main {
       System.out.println("Main.Background() \n"
               + "Frame.Start:\t"        + tv.startFrame   + "\n"
               + "Frame.Stop:\t\t"         + tv.stopFrame  + "\n"
-              + "Match.Range:\t"        + tv.bgMatchRange + "\n"
-              + "Match.Range:\t"        + tv.fgMatchRange + "\n"
-              + "Feather.Size:\t"       + tv.featherSize  + "\n"
+              + "Match.Range:\t"        + tv.getBgMatchRange() + "\n"
+              + "Match.Range:\t"        + tv.getFgMatchRange() + "\n"
+              + "Feather.Size:\t"       + tv.getFeatherSize()  + "\n"
               + "Transparency Color:\t" + TransformVideo.formatPixel(tv.transColor));
 
       execTransform();  // Execute the specific transform for this derived class
