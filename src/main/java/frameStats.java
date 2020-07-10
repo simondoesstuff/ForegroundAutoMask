@@ -24,10 +24,10 @@ public class frameStats {
     featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
   }
 
-  int FgInRow=0;
-  int FgInCol=0;
-  int BgInRow=0;
-  int BgInCol=0;
+//  int FgInRow=0;
+//  int FgInCol=0;
+//  int BgInRow=0;
+//  int BgInCol=0;
 
 
   public void setFeatherSize(int newRange) {
@@ -97,30 +97,90 @@ public class frameStats {
   // Generate statistics for # of Fg and Bg pixels in the current
   // column and row.  Intended to be used to help remove unwanted noise.
 
-  protected void populateFeatherRowCol(int w, int h, int xcenter, int ycenter) {
-    FgInRow=FgInCol=BgInRow=BgInCol=0;
 
-    for (int x=0; x<w; x++) { // Walk the row
-      if (isBg(x,ycenter))
-        BgInRow++;
 
-      if (isFg(x,ycenter))
-        FgInRow++;
-    } // for x
+//  protected void populateFeatherRowCol(int w, int h, int xcenter, int ycenter) {
+//    FgInRow=FgInCol=BgInRow=BgInCol=0;
+//
+//    for (int x=0; x<w; x++) { // Walk the row
+//      if (isBg(x,ycenter))
+//        BgInRow++;
+//
+//      if (isFg(x,ycenter))
+//        FgInRow++;
+//    } // for x
+//
+//    for (int y=0; y<h; y++) { // Walk the row
+//      if (isBg(xcenter,y))
+//        BgInCol++;
+//
+//      if (isFg(xcenter,y))
+//        FgInCol++;
+//    } // for x
+//  }
 
-    for (int y=0; y<h; y++) { // Walk the row
-      if (isBg(xcenter,y))
-        BgInCol++;
+  private int rowStatsBg[] = null;
+  private int rowStatsFg[] = null;
+  private int colStatsBg[] = null;
+  private int colStatsFg[] = null;
 
-      if (isFg(xcenter,y))
-        FgInCol++;
-    } // for x
+  public void populateFeatherRowCol(int w, int h) {
+    if (rowStatsBg==null) {      // Allocate arrays for holding frame statistics.
+      rowStatsBg = new int[h];  // Same arrays can be used for ALL frames.
+      rowStatsFg = new int[h];
+      colStatsBg = new int[w];
+      colStatsFg = new int[w];
+    }
+
+//    FgInRow=FgInCol=BgInRow=BgInCol=0;
+
+    for (int row=0; row<h; row++) {
+      rowStatsBg[row]=rowStatsFg[row]=0;
+
+      for (int x = 0; x < w; x++) { // Walk the row
+        if (isBg(x, row))
+          rowStatsBg[row]++;
+
+        if (isFg(x, row))
+          rowStatsFg[row]++;
+      } // for x
+    } // for row
+
+    for (int col=0; col<w; col++) {
+      colStatsBg[col] = colStatsFg[col] = 0;
+
+      for (int y = 0; y < h; y++) { // Walk the row
+        if (isBg(col, y))
+          colStatsBg[col]++;
+
+        if (isFg(col, y))
+          colStatsFg[col]++;
+      } // for y
+    } // for col
+  } // populateFeatherRowCol()
+
+
+  private int bgInRow(int row) {
+    return rowStatsBg[row];
   }
+
+  private int fgInRow(int row) {
+    return rowStatsFg[row];
+  }
+
+  private int bgInCol(int col) {
+    return colStatsBg[col];
+  }
+
+  private int fgInCol(int col) {
+    return colStatsFg[col];
+  }
+
 
   boolean muteRow(int x, int y) {
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (BgInRow > 100 && FgInRow <20)
+    else if (bgInRow(y) > 100 && fgInRow(y) <20)
       return true;
     else
       return false;
@@ -129,7 +189,7 @@ public class frameStats {
   boolean muteCol(int x, int y) {
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (BgInCol > 100 && FgInCol <20)
+    else if (bgInCol(x) > 100 && fgInCol(x) <20)
       return true;
     else
       return false;

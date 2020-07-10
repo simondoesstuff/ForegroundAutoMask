@@ -186,6 +186,8 @@ public class BackGroundAvailable extends TransformVideo {
       } // for x
     } // for y
 
+    fstats.populateFeatherRowCol(Width, Height);
+
     for (int y=0; y<Height; y++) {     // Loop through all pixels for step 1 & step 2.
       for (int x = 0; x < Width; x++) {
         /////////////////////////////////////////////////////////////////////////////////
@@ -206,7 +208,7 @@ public class BackGroundAvailable extends TransformVideo {
           bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
         else {
           fstats.populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
-          fstats.populateFeatherRowCol(Width, Height, x, y);
+//          fstats.populateFeatherRowCol(Width, Height, x, y);
 
           if (fstats.containsBgPixels() && !fstats.containsFgPixels()) {
 //            System.out.println("NonLinear Force to Black");
