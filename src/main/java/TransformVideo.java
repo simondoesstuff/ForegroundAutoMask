@@ -29,6 +29,7 @@ public class TransformVideo {
   protected long                frameNo         = -1;   // Frame Number
   protected int                 startFrame      = 0;
   protected int                 stopFrame       = Integer.MAX_VALUE;
+  private   static int          framesProcessed = 0;    // Used in all derived classes for overall statistics calculations
 
 
   protected int                 transColor      = DCM_ALPHA_MASK|DCM_GREEN_MASK;  // Transparency Color
@@ -67,6 +68,15 @@ public class TransformVideo {
     fileBg = new File(vidBgFileName);   // Open Video Input File
     grabBg = FrameGrab.createFrameGrab(NIOUtils.readableChannel(fileBg)); // Helper for BgFile
   }
+
+  protected void incFramesProcessed() {
+    TransformVideo.framesProcessed++;
+  }
+
+  public static int getFramesProcessed() {
+    return TransformVideo.framesProcessed;
+  }
+
 
   private void openOutFile() throws IOException {
     ///////////////////////////////////////////////////////////////

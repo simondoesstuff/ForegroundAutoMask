@@ -5,6 +5,7 @@ import org.jcodec.api.JCodecException;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.time.*;
 
 
 // QUESTIONS/ANSWERES:
@@ -136,9 +137,9 @@ public class Main {
       System.out.println("Main.Background() \n"
               + "Frame.Start:\t"        + tv.startFrame   + "\n"
               + "Frame.Stop:\t\t"         + tv.stopFrame  + "\n"
-              + "Match.Range:\t"        + tv.bgMatchRange + "\n"
-              + "Match.Range:\t"        + tv.fgMatchRange + "\n"
-              + "Feather.Size:\t"       + tv.featherSize  + "\n"
+              + "Match.Range:\t"        + tv.fstats.bgMatchRange + "\n"
+              + "Match.Range:\t"        + tv.fstats.fgMatchRange + "\n"
+              + "Feather.Size:\t"       + tv.fstats.featherSize  + "\n"
               + "Transparency Color:\t" + TransformVideo.formatPixel(tv.transColor));
 
       execTransform();  // Execute the specific transform for this derived class
@@ -188,6 +189,8 @@ public class Main {
 
     public static void main(String[] args) throws IOException, JCodecException {
         System.out.println("Main() START");
+        Instant start = Instant.now();
+
 
         threadPool = Executors.newFixedThreadPool(NTHREADS);   // we may want to make this of dynamic size or calculate the optimum threads
                                                                 // ...based on computer specs.
@@ -195,5 +198,22 @@ public class Main {
         Main videoApp = new Main(); // Be done with static
         videoApp.commandInterpreter(args);
         threadPool.shutdown();
+        Instant finish = Instant.now();
+        Duration dur = Duration.between(start, finish);
+
+        float totFrames   = TransformVideo.getFramesProcessed();
+        long  totSecsLong = dur.getSeconds();
+        float  totSecs;
+
+        if (totSecsLong==0)
+          totSecs = 1.0f;   // Sanity check
+        else
+          totSecs = totSecsLong;
+
+        float fps = totFrames/totSecs;
+
+        System.out.println("Duration: " + dur.toMinutesPart() + ":" + dur.toSecondsPart()
+            + "   Frames: " + TransformVideo.getFramesProcessed()
+            + "   Frames/Second: " + fps);
     }  // main()
 } // class

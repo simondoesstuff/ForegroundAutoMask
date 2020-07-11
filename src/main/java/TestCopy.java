@@ -61,7 +61,7 @@ public class TestCopy extends TransformVideo {
       frameNo = getFrameNumber(grab);   // Track Frame Number for debugging
 
       ///////////////////////////////////////////////////////////
-      // Loop through all input frams and send to output encoder
+      // Loop through all input frames and send to output encoder
       ///////////////////////////////////////////////////////////
 
       while ((picture = grab.getNativeFrame()) != null) {
@@ -70,6 +70,7 @@ public class TestCopy extends TransformVideo {
         //dumpBufferedImage(bufIm);
         frameNo = getFrameNumber(grab);
         encoder.encodeImage(bufIm);
+        incFramesProcessed();
       } // while
 
       encoder.finish();

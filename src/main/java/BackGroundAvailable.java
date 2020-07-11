@@ -35,8 +35,8 @@ public class BackGroundAvailable extends TransformVideo {
 
   private boolean primaryBgMatch(int pxPrimary, int bgPrimary) {
 
-    int left = bgPrimary - bgMatchRange;
-    int right = bgPrimary + bgMatchRange;
+    int left = bgPrimary - fstats.bgMatchRange;
+    int right = bgPrimary + fstats.bgMatchRange;
 
     if ((pxPrimary >= left) && (pxPrimary <= right))
       return true;
@@ -46,8 +46,8 @@ public class BackGroundAvailable extends TransformVideo {
 
 
   private boolean primaryFgMatch(int pxPrimary, int bgPrimary) {
-    int left = bgPrimary - fgMatchRange;
-    int right = bgPrimary + fgMatchRange;
+    int left = bgPrimary - fstats.fgMatchRange;
+    int right = bgPrimary + fstats.fgMatchRange;
 
     // The question is, is this pixel a lot different than the Bg color?
 
@@ -150,13 +150,13 @@ public class BackGroundAvailable extends TransformVideo {
     return rgbToPixel(bgRed + pxRed, bgGrn + pxGrn, bgBlu + pxBlu);
   }
 
-  // a tiny class that is just used to wrap arguments going into the 2 phase methods (for private use only)
+  // Internal tiny class that is just used to wrap arguments going into the 2 phase methods (for private use only)
   private class FrameSection {
     int wStart, wEnd, hStart, hEnd;
 
     public FrameSection(int wStart, int wEnd, int hStart, int hEnd) {
-      this.wStart = Math.max(wStart, 0);      // if the minimum width is less than 0, use 0.
-      this.wEnd = Math.min(wEnd, getInputWidth());        // if the maximum width is > screen width, use screenWidth.
+      this.wStart = Math.max(wStart, 0);            // if the minimum width is less than 0, use 0.
+      this.wEnd = Math.min(wEnd, getInputWidth());  // if the maximum width is > screen width, use screenWidth.
 
       this.hStart = Math.max(hStart, 0);
       this.hEnd = Math.min(hEnd, getInputWidth());
@@ -197,22 +197,23 @@ public class BackGroundAvailable extends TransformVideo {
         /////////////////////////////////////////////////////////////////////////////////
 
         if (pixelBgMatch(pixelIN, pixelBG, x, y, Width, Height))
-          setBgFlag(x, y, true);             // Bg pixel
+          fstats.setBgFlag(x, y, true);             // Bg pixel
         else
-          setBgFlag(x, y, false);           // Maybe a Fg pixel
+          fstats.setBgFlag(x, y, false);           // Maybe a Fg pixel
 
         if (pixelFgMatch(pixelIN, pixelBG, x, y, Width, Height))
-          setFgFlag(x, y, true);             // Fg pixel
+          fstats.setFgFlag(x, y, true);             // Fg pixel
         else
-          setFgFlag(x, y, false);            // Maybe a Bg pixel
+          fstats.setFgFlag(x, y, false);            // Maybe a Bg pixel
 
-        if (isBg(x, y) && isFg(x, y))
+        if (fstats.isBg(x, y) && fstats.isFg(x, y)) {
           System.out.println("FG&BG1!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);
-        if (isBg(x, y) && isFg(x, y))
-          System.exit(0);
+          System.exit(7);
+        }
       } // for x
     } // for y
   } // reviseImgOutPhase1()
+
 
   private void reviseImgOutPhase2(FrameSection s) {
     int Width = s.wEnd;
@@ -228,30 +229,29 @@ public class BackGroundAvailable extends TransformVideo {
         /////////////////////////////////////////////////////////////////////////////////
 //      System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
 
-        if (isBg(x, y) && isFg(x, y)) {
+        if (fstats.isBg(x, y) && fstats.isFg(x, y)) {
           System.out.println("FG&BG2!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);
           System.exit(0);
         }
 
 //
-        if (isBg(x, y))
+        if (fstats.isBg(x, y))
           bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
         else {
-          populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
-          populateFeatherRowCol(Width, Height, x, y);
+          fstats.populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
 
-          if (containsBgPixels() && !containsFgPixels()) {
+          if (fstats.containsBgPixels() && !fstats.containsFgPixels()) {
 //            System.out.println("NonLinear Force to Black");
             bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
           } else {
-            if (isFg(x, y) && !containsBgPixels())                  // FG pixel and No BG pixels
+            if (fstats.isFg(x, y) && !fstats.containsBgPixels())                  // FG pixel and No BG pixels
               ;                                                       // Let's see the video fg how about
-            else if (!containsFgPixels() && !containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
+            else if (!fstats.containsFgPixels() && !fstats.containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
               ;                                                       // NOOP yields original pixel color
-            else if (muteRow(x, y) || muteCol(x, y))
+            else if (fstats.muteRow(x, y) || fstats.muteCol(x, y))
               bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
-              float ff = featherFactor();
+              float ff = fstats.featherFactor();
               int newRGB = getFeatheredPixel(x, y, ff);
 //              System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
               bufImgOut.setRGB(x, y, newRGB);     // New feathered color
@@ -261,6 +261,7 @@ public class BackGroundAvailable extends TransformVideo {
       } // for x
     } // for y
   }
+
 
   private void reviseImgOutFrame() {
     Future<?>[] processes = new Future<?>[Main.NTHREADS];
@@ -272,6 +273,8 @@ public class BackGroundAvailable extends TransformVideo {
 
     for (int i = 0; i < Main.NTHREADS; i++) {
       // the section can be the prevMax and the prevMax + shift because the beginning of the range is inclusive and the end of exclusive by the nature of a for loop
+      // SIMON:  This algorithm will not catch the last thread/frameChunk accurately because you are assuming that getInputHeight() is evenly divisible by Main.NTHREADS
+      //         You have to special case the last thread so that it goes to getInputHeight()
       FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s));         // ignite thread i
     }
@@ -290,6 +293,7 @@ public class BackGroundAvailable extends TransformVideo {
 
     ////////////////////////////////////////////////////////////// BEGIN PHASE 2
 
+    fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
     prevMax = 0;
 
     for (int i = 0; i < Main.NTHREADS; i++) {
@@ -337,7 +341,7 @@ public class BackGroundAvailable extends TransformVideo {
       frameNo = getFrameNumber(grabIn);   // Track Frame Number for debugging
       pictureBg = grabBg.getNativeFrame();
       bufImgBg = AWTUtil.toBufferedImage(pictureBg);   // Bg frame
-      createFrameFgFlagArray(getInputWidth(), getInputHeight());  // Used for feathering
+      fstats.createFrameFgFlagArray(getInputWidth(), getInputHeight());  // Full Frame Size.  Used for feathering
 
       /////////////////////////////////////////////////////////////////////
       // Loop through all input frames and send to output encoder
@@ -358,6 +362,8 @@ public class BackGroundAvailable extends TransformVideo {
           reviseImgOutFrame();                                // Magic algorithm
           encoder.encodeImage(bufImgOut);                     // Write the out image to the encoder & out file
         }
+
+        incFramesProcessed();
 
         if (frameNo > stopFrame)
           break;  // Exit while loop early

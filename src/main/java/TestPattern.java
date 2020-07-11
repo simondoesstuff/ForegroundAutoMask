@@ -47,6 +47,8 @@ public class TestPattern extends TransformVideo {
         bufImgIn = AWTUtil.toBufferedImage(pictureIn);  //
         dumpBufferedImage(bufImgIn);
       }
+
+      incFramesProcessed();
     }
 
     return true;

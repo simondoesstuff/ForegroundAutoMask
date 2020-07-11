@@ -97,28 +97,6 @@ public class frameStats {
   // Generate statistics for # of Fg and Bg pixels in the current
   // column and row.  Intended to be used to help remove unwanted noise.
 
-
-
-//  protected void populateFeatherRowCol(int w, int h, int xcenter, int ycenter) {
-//    FgInRow=FgInCol=BgInRow=BgInCol=0;
-//
-//    for (int x=0; x<w; x++) { // Walk the row
-//      if (isBg(x,ycenter))
-//        BgInRow++;
-//
-//      if (isFg(x,ycenter))
-//        FgInRow++;
-//    } // for x
-//
-//    for (int y=0; y<h; y++) { // Walk the row
-//      if (isBg(xcenter,y))
-//        BgInCol++;
-//
-//      if (isFg(xcenter,y))
-//        FgInCol++;
-//    } // for x
-//  }
-
   private int rowStatsBg[] = null;
   private int rowStatsFg[] = null;
   private int colStatsBg[] = null;
@@ -268,6 +246,4 @@ public class frameStats {
     else
       return false;
   } // primaryFgMatch()
-
-
 } // class
