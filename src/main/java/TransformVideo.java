@@ -50,9 +50,9 @@ public class TransformVideo {
     return (pixel & DCM_GREEN_MASK)>>DCM_GREEN_SHIFT;
   }
 
-  public static int getBlue(int pixel) {
-    return (pixel & DCM_BLUE_MASK);
-  }
+    public static int getBlue(int pixel) {
+        return (pixel & DCM_BLUE_MASK);
+    }
 
   public static int rgbToPixel(int r, int g, int b) {
     return DCM_ALPHA_MASK|(r<<DCM_RED_SHIFT)|(g<<DCM_GREEN_SHIFT)|b;
