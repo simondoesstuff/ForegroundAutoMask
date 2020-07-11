@@ -6,11 +6,9 @@ import org.jcodec.common.io.SeekableByteChannel;
 import org.jcodec.common.model.ColorSpace;
 import org.jcodec.common.model.Picture;
 import org.jcodec.common.model.Rational;
-import org.jcodec.scale.AWTUtil;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 public class TransformVideo {

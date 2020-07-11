@@ -1,17 +1,10 @@
 //import com.oracle.awt.AWTUtils;
-import org.jcodec.api.FrameGrab;
-import org.jcodec.api.JCodecException;
-import org.jcodec.api.awt.AWTSequenceEncoder;
-import org.jcodec.common.io.NIOUtils;
-import org.jcodec.common.io.SeekableByteChannel;
-import org.jcodec.common.model.ColorSpace;
-import org.jcodec.common.model.Picture;
-import org.jcodec.common.model.Rational;
-import org.jcodec.scale.AWTUtil;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
+import org.jcodec.api.JCodecException;
+
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
 // QUESTIONS/ANSWERES:
@@ -32,7 +25,12 @@ import java.io.IOException;
 public class Main {
     private TransformVideo  tv = null;
 
+    public static ExecutorService threadPool;
+    public static final int NTHREADS = 6;   // how many threads the thread pool contains which is unchanging.
+
     // No Constructor -- Imagine that.
+
+    ///////////// methods below
 
     private void execTransform() throws IOException, JCodecException {
       if (tv.execTransform()) {   // Implement method in derived class
@@ -138,9 +136,9 @@ public class Main {
       System.out.println("Main.Background() \n"
               + "Frame.Start:\t"        + tv.startFrame   + "\n"
               + "Frame.Stop:\t\t"         + tv.stopFrame  + "\n"
-              + "Match.Range:\t"        + tv.getBgMatchRange() + "\n"
-              + "Match.Range:\t"        + tv.getFgMatchRange() + "\n"
-              + "Feather.Size:\t"       + tv.getFeatherSize()  + "\n"
+              + "Match.Range:\t"        + tv.bgMatchRange + "\n"
+              + "Match.Range:\t"        + tv.fgMatchRange + "\n"
+              + "Feather.Size:\t"       + tv.featherSize  + "\n"
               + "Transparency Color:\t" + TransformVideo.formatPixel(tv.transColor));
 
       execTransform();  // Execute the specific transform for this derived class
@@ -189,8 +187,13 @@ public class Main {
 
 
     public static void main(String[] args) throws IOException, JCodecException {
-      System.out.println("Main() START");
-      Main videoApp = new Main(); // Be done with static
-      videoApp.commandInterpreter(args);
+        System.out.println("Main() START");
+
+        threadPool = Executors.newFixedThreadPool(NTHREADS);   // we may want to make this of dynamic size or calculate the optimum threads
+                                                                // ...based on computer specs.
+
+        Main videoApp = new Main(); // Be done with static
+        videoApp.commandInterpreter(args);
+        threadPool.shutdown();
     }  // main()
 } // class
