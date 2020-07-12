@@ -263,6 +263,21 @@ public class BackGroundAvailable extends TransformVideo {
   }
 
 
+  private void waitForAllThreadsToComplete(Future<?>[]  procs, String phaseDescription) {
+    System.out.println("\tWAITING for " + phaseDescription + " threads to complete");
+
+    for (Future<?> process : procs) {
+      // the following code wait for all processes to complete. There should never be an error thrown, but in the case that it happens, it will be printed instead of thrown.
+
+      try {
+        process.get();      // this is a blocking call
+      } catch (InterruptedException | ExecutionException | CancellationException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+
   private void reviseImgOutFrame() {
     Future<?>[] processes = new Future<?>[Main.NTHREADS];
 
@@ -280,32 +295,37 @@ public class BackGroundAvailable extends TransformVideo {
       //         You have to special case the last thread so that it goes to getInputHeight()
 
       FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
-      System.out.println("reviseImgOutFrame.phase1(" + width + "," + height + ")  #Threads: " + noThreads
+      System.out.println("\tPhase1(" + width + "," + height + ") Threads: " + i + "/" + noThreads
               + "   FrameSection: " + s.wStart + " " + s.wEnd + " " + s.hStart + " " + s.hEnd);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s));         // ignite thread i
     }
 
-    ////////////////////////////////////////////////////////////// WAIT FOR PHASE 1 COMPLETION
+    //////////////////////////////////////////////////////////////
+    // WAIT FOR PHASE 1 COMPLETION
+    //////////////////////////////////////////////////////////////
 
-    for (Future<?> process : processes) {
-      // the following code wait for all processes to complete. There should never be an error thrown, but in the case that it happens, it will be printed instead of thrown.
+    waitForAllThreadsToComplete(processes, "phase1");
 
-      try {
-        process.get();      // this is a blocking call
-      } catch (InterruptedException | ExecutionException | CancellationException e) {
-        e.printStackTrace();
-      }
-    }
+    //////////////////////////////////////////////////////////////
+    // BEGIN PHASE 2
+    //////////////////////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////////////// BEGIN PHASE 2
-
+    System.out.println("\tfstats.populateFeatherRowCol() Not multi-threaded.  Perhaps Rows could be done on one thread and Cols on another?");
     fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
     prevMax = 0;
 
     for (int i = 0; i < noThreads; i++) {
       FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+      System.out.println("\tPhase2(" + width + "," + height + ") Threads: " + i + "/" + noThreads
+              + "   FrameSection: " + s.wStart + " " + s.wEnd + " " + s.hStart + " " + s.hEnd);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase2(s));         // ignite thread i
     }
+
+    //////////////////////////////////////////////////////////////
+    // WAIT FOR PHASE 2 COMPLETION
+    //////////////////////////////////////////////////////////////
+
+    waitForAllThreadsToComplete(processes, "phase2");
   } // reviseImgOutFrame
 
 
