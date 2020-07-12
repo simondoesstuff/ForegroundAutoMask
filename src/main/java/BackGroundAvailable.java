@@ -266,16 +266,22 @@ public class BackGroundAvailable extends TransformVideo {
   private void reviseImgOutFrame() {
     Future<?>[] processes = new Future<?>[Main.NTHREADS];
 
-    int width = getInputWidth();
-    int shift = getInputHeight() / Main.NTHREADS;       // uses integer math, expect sections to be a bit too small.
+    int noThreads = Main.NTHREADS;
+    int width   = getInputWidth();
+    int height  = getInputHeight();
+    int shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
 
-    int prevMax = 0;
+    int prevMax = 0;  // Actually height of the job given to the thread
 
-    for (int i = 0; i < Main.NTHREADS; i++) {
+    for (int i = 0; i < noThreads; i++) {
+
       // the section can be the prevMax and the prevMax + shift because the beginning of the range is inclusive and the end of exclusive by the nature of a for loop
       // SIMON:  This algorithm will not catch the last thread/frameChunk accurately because you are assuming that getInputHeight() is evenly divisible by Main.NTHREADS
       //         You have to special case the last thread so that it goes to getInputHeight()
+
       FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+      System.out.println("reviseImgOutFrame.phase1(" + width + "," + height + ")  #Threads: " + noThreads
+              + "   FrameSection: " + s.wStart + " " + s.wEnd + " " + s.hStart + " " + s.hEnd);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s));         // ignite thread i
     }
 
@@ -296,7 +302,7 @@ public class BackGroundAvailable extends TransformVideo {
     fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
     prevMax = 0;
 
-    for (int i = 0; i < Main.NTHREADS; i++) {
+    for (int i = 0; i < noThreads; i++) {
       FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase2(s));         // ignite thread i
     }
