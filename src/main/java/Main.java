@@ -27,20 +27,26 @@ public class Main {
     private TransformVideo  tv = null;
 
     public static ExecutorService threadPool;
-    public static final int NTHREADS = 6;   // how many threads the thread pool contains which is unchanging.
+    public static final int NTHREADS = 7;   // how many threads the thread pool contains which is unchanging.
+                                            // You have a circular dependency loop here.   This global should
+                                            // be pushed to TransformVideo class and populated with a setter.
 
     // No Constructor -- Imagine that.
 
     ///////////// methods below
 
     private void execTransform() throws IOException, JCodecException {
-      if (tv.execTransform()) {   // Implement method in derived class
-        System.out.println("Main.execTestPattern() success");
-        return;
-      } else {
-        System.out.println("Main.execTestPattern() failure");
-        help();
-        return;
+      try {
+        if (tv.execTransform()) {   // Implement method in derived class
+          System.out.println("Main.execTestPattern() success");
+          return;
+        } else {
+          System.out.println("Main.execTestPattern() failure");
+          help();
+          return;
+        }
+      } catch(Exception e) {
+        System.out.println("Main.execTestPattern() Caught exception " + e.toString());
       }
     } // execTransform()
 

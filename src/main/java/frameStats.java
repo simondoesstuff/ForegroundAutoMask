@@ -174,7 +174,10 @@ public class frameStats {
   }
 
 
-  protected void populateFeatherBox(int w, int h, int xcenter, int ycenter) {
+  protected void populateFeatherBox(int w,        // Frame width  needed if box exceeds frame dimensions at the edge
+                                    int h,        // Frame Height needed if box exceeds frame dimensions at the edge
+                                    int xcenter,  // Center of the box in frame coordinates
+                                    int ycenter) {
     int flagx;      // x & y adjusted by sanity checks to that we do not
     int flagy;      // index into feather box out of bounds.
     noBgInBox = 0;  // Number of Bg pixes in the feather box

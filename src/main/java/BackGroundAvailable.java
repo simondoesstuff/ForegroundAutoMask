@@ -150,25 +150,27 @@ public class BackGroundAvailable extends TransformVideo {
     return rgbToPixel(bgRed + pxRed, bgGrn + pxGrn, bgBlu + pxBlu);
   }
 
+
   // Internal tiny class that is just used to wrap arguments going into the 2 phase methods (for private use only)
   private class FrameSection {
-    int wStart, wEnd, hStart, hEnd;
+    int     wStart,     // Horizontal first pixel
+            wEndPlus1,  // Horizontal last pixel + 1
+            hStart,     // Vertical first pixel
+            hEndPlus1;  // Vertical last pixel + 1
 
     public FrameSection(int wStart, int wEnd, int hStart, int hEnd) {
-      this.wStart = Math.max(wStart, 0);            // if the minimum width is less than 0, use 0.
-      this.wEnd = Math.min(wEnd, getInputWidth());  // if the maximum width is > screen width, use screenWidth.
+      this.wStart = Math.max(wStart, 0);              // if the start pixel is less than 0, use 0.
+      this.wEndPlus1 = Math.min(wEnd, getInputWidth());  // if the last pixel is >= screen width, use screenWidth-1
 
-      this.hStart = Math.max(hStart, 0);
-      this.hEnd = Math.min(hEnd, getInputWidth());
+      this.hStart = Math.max(hStart, 0);              // Same kind of thing vertically
+      this.hEndPlus1 = Math.min(hEnd, getInputHeight());
     }
   }
 
-  private void reviseImgOutPhase1(FrameSection s) {
-    int Width = s.wEnd;
-    int Height = s.hEnd;
 
-    for (int y = s.hStart; y < Height; y++) {      // Loop through all pixels for step 1 & step 2.
-      for (int x = s.wStart; x < Width; x++) { // Frame coordinates
+  private void reviseImgOutPhase1(FrameSection s, int frameWidth, int frameHeight) {
+    for (int y = s.hStart; y < s.hEndPlus1; y++) {      // Loop through all pixels for step 1 & step 2.
+      for (int x = s.wStart; x < s.wEndPlus1; x++) { // Frame coordinates
 //        System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
         int pixelIN = bufImgIn.getRGB(x, y); // pixel(x, y)
         int pixelBG = bufImgBg.getRGB(x, y);
@@ -196,12 +198,12 @@ public class BackGroundAvailable extends TransformVideo {
         //           surrounding this pixel are bg and darken proportionally.
         /////////////////////////////////////////////////////////////////////////////////
 
-        if (pixelBgMatch(pixelIN, pixelBG, x, y, Width, Height))
+        if (pixelBgMatch(pixelIN, pixelBG, x, y, frameWidth, frameHeight))
           fstats.setBgFlag(x, y, true);             // Bg pixel
         else
           fstats.setBgFlag(x, y, false);           // Maybe a Fg pixel
 
-        if (pixelFgMatch(pixelIN, pixelBG, x, y, Width, Height))
+        if (pixelFgMatch(pixelIN, pixelBG, x, y, frameWidth, frameHeight))
           fstats.setFgFlag(x, y, true);             // Fg pixel
         else
           fstats.setFgFlag(x, y, false);            // Maybe a Bg pixel
@@ -216,11 +218,8 @@ public class BackGroundAvailable extends TransformVideo {
 
 
   private void reviseImgOutPhase2(FrameSection s) {
-    int Width = s.wEnd;
-    int Height = s.hEnd;
-
-    for (int y = s.hStart; y < Height; y++) {     // Loop through all pixels for step 1 & step 2.
-      for (int x = s.wStart; x < Width; x++) {
+    for (int y = s.hStart; y < s.hEndPlus1; y++) {     // Loop through all pixels for step 1 & step 2.
+      for (int x = s.wStart; x < s.wEndPlus1; x++) {
         /////////////////////////////////////////////////////////////////////////////////
         //    STEP3: Determine the color based upon the Bg flag array, the Fg flag array,
         //           whether the surrounding pixels contain bg or fb pixes.
@@ -238,7 +237,7 @@ public class BackGroundAvailable extends TransformVideo {
         if (fstats.isBg(x, y))
           bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
         else {
-          fstats.populateFeatherBox(Width, Height, x, y);                  // Just computing statistics of the box at this point.
+          fstats.populateFeatherBox(getInputWidth(), getInputHeight(), x, y);                  // Just computing statistics of the box at this point.
 
           if (fstats.containsBgPixels() && !fstats.containsFgPixels()) {
 //            System.out.println("NonLinear Force to Black");
@@ -263,7 +262,7 @@ public class BackGroundAvailable extends TransformVideo {
   }
 
 
-  private void waitForAllThreadsToComplete(Future<?>[]  procs, String phaseDescription) {
+  private void waitForAllThreadsToComplete(Future<?>[]  procs, String phaseDescription) throws InterruptedException {
     System.out.println("\tWAITING for " + phaseDescription + " threads to complete");
 
     for (Future<?> process : procs) {
@@ -274,30 +273,33 @@ public class BackGroundAvailable extends TransformVideo {
       } catch (InterruptedException | ExecutionException | CancellationException e) {
         e.printStackTrace();
       }
-    }
+    } // for
+
+    Thread.sleep(1000); // Sleep one second temporarily while we debug stuff.   This eliminates suspicion of this wait routine.
   }
 
 
-  private void reviseImgOutFrame() {
+  private void reviseImgOutFrame() throws InterruptedException {
     Future<?>[] processes = new Future<?>[Main.NTHREADS];
 
     int noThreads = Main.NTHREADS;
-    int width   = getInputWidth();
-    int height  = getInputHeight();
+    int width   = getInputWidth();  // Real frame width
+    int height  = getInputHeight(); // Real frame height
     int shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
 
     int prevMax = 0;  // Actually height of the job given to the thread
 
     for (int i = 0; i < noThreads; i++) {
+      int hstart = prevMax;
+      int hendPlus1   = prevMax += shift;
 
-      // the section can be the prevMax and the prevMax + shift because the beginning of the range is inclusive and the end of exclusive by the nature of a for loop
-      // SIMON:  This algorithm will not catch the last thread/frameChunk accurately because you are assuming that getInputHeight() is evenly divisible by Main.NTHREADS
-      //         You have to special case the last thread so that it goes to getInputHeight()
+      if (i==noThreads-1)   // Last thread.  Fix roundoff error
+        hendPlus1 = height;
 
-      FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+      FrameSection s = new FrameSection(0, width, hstart, hendPlus1);
       System.out.println("\tPhase1(" + width + "," + height + ") Threads: " + i + "/" + noThreads
-              + "   FrameSection: " + s.wStart + " " + s.wEnd + " " + s.hStart + " " + s.hEnd);
-      processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s));         // ignite thread i
+              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
+      processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s, width, height));         // ignite thread i
     }
 
     //////////////////////////////////////////////////////////////
@@ -315,9 +317,15 @@ public class BackGroundAvailable extends TransformVideo {
     prevMax = 0;
 
     for (int i = 0; i < noThreads; i++) {
-      FrameSection s = new FrameSection(0, width, prevMax, prevMax += shift);       // this will never exceed the screen size because 'Section' is a safe data-structure.
+      int hstart = prevMax;
+      int hendPlus1   = prevMax += shift;
+
+      if (i==noThreads-1)   // Last thread.  Fix roundoff error
+        hendPlus1 = height;
+
+      FrameSection s = new FrameSection(0, width, hstart, hendPlus1);       // this will never exceed the screen size because 'Section' is a safe data-structure.
       System.out.println("\tPhase2(" + width + "," + height + ") Threads: " + i + "/" + noThreads
-              + "   FrameSection: " + s.wStart + " " + s.wEnd + " " + s.hStart + " " + s.hEnd);
+              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase2(s));         // ignite thread i
     }
 
@@ -336,7 +344,7 @@ public class BackGroundAvailable extends TransformVideo {
   // Helps the caller bring up help() when things go wrong.
   ///////////////////////////////////////////////////////////////////
   @Override
-  public boolean execTransform() throws IOException, JCodecException {
+  public boolean execTransform() throws IOException, JCodecException, InterruptedException {
     System.out.println("BackGroundAvailable.execTransform() VIDEO FILES:  " + vidInFileName + "  " + vidOutFileName);
 
     if (!fileIn.exists()) {

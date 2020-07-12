@@ -255,7 +255,7 @@ public class TransformVideo {
   } // dumpBufferedImage()
 
 
-  public boolean execTransform() throws IOException, JCodecException {
+  public boolean execTransform() throws IOException, JCodecException, InterruptedException {
     System.out.println("Oops! Super class TransformVideo.execTransform() called instead of derived class method");
     return false;
   }
