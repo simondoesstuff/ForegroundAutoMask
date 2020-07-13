@@ -1,3 +1,4 @@
+
 import org.jcodec.api.JCodecException;
 import org.jcodec.common.io.NIOUtils;
 import org.jcodec.scale.AWTUtil;
@@ -218,6 +219,8 @@ public class BackGroundAvailable extends TransformVideo {
 
 
   private void reviseImgOutPhase2(FrameSection s) {
+    featherBoxStats fbs = new featherBoxStats();
+
     for (int y = s.hStart; y < s.hEndPlus1; y++) {     // Loop through all pixels for step 1 & step 2.
       for (int x = s.wStart; x < s.wEndPlus1; x++) {
         /////////////////////////////////////////////////////////////////////////////////
@@ -238,22 +241,22 @@ public class BackGroundAvailable extends TransformVideo {
           //bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
           bufImgOutSetRGB(x, y, transColor);     // Synchronized
         else {
-          fstats.populateFeatherBox(getInputWidth(), getInputHeight(), x, y);                  // Just computing statistics of the box at this point.
+          fstats.populateFeatherBox(fbs, getInputWidth(), getInputHeight(), x, y);                  // Just computing statistics of the box at this point.
 
-          if (fstats.containsBgPixels() && !fstats.containsFgPixels()) {
+          if (fbs.containsBgPixels() && !fbs.containsFgPixels()) {
 //          System.out.println("NonLinear Force to Black");
 //          bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
           } else {
-            if (fstats.isFg(x, y) && !fstats.containsBgPixels())                  // FG pixel and No BG pixels
+            if (fstats.isFg(x, y) && !fbs.containsBgPixels())                  // FG pixel and No BG pixels
               ;                                                       // Let's see the video fg how about
-            else if (!fstats.containsFgPixels() && !fstats.containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
+            else if (!fbs.containsFgPixels() && !fbs.containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
               ;                                                       // NOOP yields original pixel color
             else if (fstats.muteRow(x, y) || fstats.muteCol(x, y))
 //            bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
               bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
-              float ff = fstats.featherFactor();
+              float ff = fbs.featherFactor();
               int newRGB = getFeatheredPixel(x, y, ff);
 //            System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
 //            bufImgOut.setRGB(x, y, newRGB);     // New feathered color
@@ -267,7 +270,7 @@ public class BackGroundAvailable extends TransformVideo {
 
 
   private void waitForAllThreadsToComplete(Future<?>[]  procs, String phaseDescription) throws InterruptedException {
-    System.out.println("\tWAITING for " + phaseDescription + " threads to complete");
+    //System.out.println("\tWAITING for " + phaseDescription + " threads to complete");
 
     for (Future<?> process : procs) {
       // the following code wait for all processes to complete. There should never be an error thrown, but in the case that it happens, it will be printed instead of thrown.
@@ -280,7 +283,7 @@ public class BackGroundAvailable extends TransformVideo {
       }
     } // for
 
-    Thread.sleep(1000); // Sleep one second temporarily while we debug stuff.   This eliminates suspicion of this wait routine.
+//    Thread.sleep(1000); // Sleep one second temporarily while we debug stuff.   This eliminates suspicion of this wait routine.
   }
 
 
@@ -302,8 +305,8 @@ public class BackGroundAvailable extends TransformVideo {
         hendPlus1 = height;
 
       FrameSection s = new FrameSection(0, width, hstart, hendPlus1);
-      System.out.println("\tPhase1(" + width + "," + height + ") Threads: " + i + "/" + noThreads
-              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
+//      System.out.println("\tPhase1(" + width + "," + height + ") Threads: " + i + "/" + noThreads
+//              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s, width, height));         // ignite thread i
     }
 
@@ -318,7 +321,7 @@ public class BackGroundAvailable extends TransformVideo {
     // BEGIN PHASE 2
     //////////////////////////////////////////////////////////////
 
-    System.out.println("\tfstats.populateFeatherRowCol() Not multi-threaded.  Perhaps Rows could be done on one thread and Cols on another?");
+//    System.out.println("\tfstats.populateFeatherRowCol() Not multi-threaded.  Perhaps Rows could be done on one thread and Cols on another?");
     fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
     prevMax = 0;
 
@@ -330,8 +333,8 @@ public class BackGroundAvailable extends TransformVideo {
         hendPlus1 = height;
 
       FrameSection s = new FrameSection(0, width, hstart, hendPlus1);       // this will never exceed the screen size because 'Section' is a safe data-structure.
-      System.out.println("\tPhase2(" + width + "," + height + ") Threads: " + i + "/" + noThreads
-              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
+//      System.out.println("\tPhase2(" + width + "," + height + ") Threads: " + i + "/" + noThreads
+//              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase2(s));         // ignite thread i
     }
 

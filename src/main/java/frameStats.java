@@ -13,15 +13,23 @@ public class frameStats {
   protected boolean fgFlag[][]        = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
 
   protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
-  protected boolean featherBox[][]    = null; // Bounding box around selected pixel
-  protected int     noBgInBox = 0;            // Also don't confuse feather box with feather bed.
-  protected int     noFgInBox = 0;            // Feather bed is much more comfortable.
+//  protected boolean featherBox[][]    = null; // Bounding box around selected pixel
+
+
+
+
+
+
+
+
+
+
 
   protected void createFrameFgFlagArray(int width, int height) {
 //    System.out.println("TransformVideo.createFrameFgFlagArray() " + width + " " + height);
     bgFlag = new boolean[width][height];  // Frame coordinates
     fgFlag = new boolean[width][height];  // Frame coordinates
-    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
+//    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
   }
 
 //  int FgInRow=0;
@@ -86,13 +94,9 @@ public class frameStats {
     return getBgFlag(x, y);
   }
 
-  protected boolean containsFgPixels() {
-    return  (noFgInBox > 0);
-  }
 
-  protected boolean containsBgPixels() {
-    return  (noBgInBox > 0);
-  }
+
+
 
   // Generate statistics for # of Fg and Bg pixels in the current
   // column and row.  Intended to be used to help remove unwanted noise.
@@ -140,22 +144,19 @@ public class frameStats {
 
   private int bgInRow(int row) {
     return rowStatsBg[row];
-  }
-
+  }   // Not thread safe yet
   private int fgInRow(int row) {
     return rowStatsFg[row];
   }
-
   private int bgInCol(int col) {
     return colStatsBg[col];
   }
-
   private int fgInCol(int col) {
     return colStatsFg[col];
   }
 
 
-  boolean muteRow(int x, int y) {
+  boolean muteRow(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
     else if (bgInRow(y) > 100 && fgInRow(y) <20)
@@ -164,7 +165,7 @@ public class frameStats {
       return false;
   }
 
-  boolean muteCol(int x, int y) {
+  boolean muteCol(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
     else if (bgInCol(x) > 100 && fgInCol(x) <20)
@@ -174,14 +175,14 @@ public class frameStats {
   }
 
 
-  protected void populateFeatherBox(int w,        // Frame width  needed if box exceeds frame dimensions at the edge
-                                    int h,        // Frame Height needed if box exceeds frame dimensions at the edge
-                                    int xcenter,  // Center of the box in frame coordinates
-                                    int ycenter) {
+  protected void populateFeatherBox(featherBoxStats fbs,      // Thread safe because it operates on a thread unique fbs
+                                    int             w,        // Frame width  needed if box exceeds frame dimensions at the edge
+                                    int             h,        // Frame Height needed if box exceeds frame dimensions at the edge
+                                    int             xcenter,  // Center of the box in frame coordinates
+                                    int             ycenter) {
     int flagx;      // x & y adjusted by sanity checks to that we do not
     int flagy;      // index into feather box out of bounds.
-    noBgInBox = 0;  // Number of Bg pixes in the feather box
-    noFgInBox = 0;
+    fbs.clear();    // Number of Bg & Fb pixes in the feather box
 
     for (int ybox=-featherSize; ybox<=featherSize; ybox++) {      // Loop box coordinates
       flagy = ycenter + ybox;     // Translate box coordinates to flag array coordinates
@@ -194,14 +195,14 @@ public class frameStats {
         if (flagx >= w) flagx=w-1;// Upper sanity check
 
         if (isBg(flagx, flagy)) {
-          featherBox[featherSize+xbox][featherSize+ybox] = true;  // Index translated as it cannot be negative
-          noBgInBox++;
+//          featherBox[featherSize+xbox][featherSize+ybox] = true;  // Index translated as it cannot be negative
+          fbs.incBgInBox();
         } else
-          featherBox[featherSize+xbox][featherSize+ybox] = false;
+//          featherBox[featherSize+xbox][featherSize+ybox] = false;
 
         if (isFg(flagx, flagy)) {
 //          feath?erBox[fe?atherSize+xbox][featherSize+ybox] = true;  // Index translated as it cannot be negative
-          noFgInBox++;
+          fbs.incFgInBox();
         }
 //        else
 //          featherBox[featherSize+xbox][featherSize+ybox] = false;
@@ -211,19 +212,7 @@ public class frameStats {
 
 
 
-  protected float featherFactor() {
-    int area = noBgInBox + noFgInBox;
-    float ff;
 
-    if (area == 0) {  // Not supposed to happen
-      ff = 1.0f;
-    }
-    else
-      ff = (1.0f * noFgInBox)/(area);
-
-//    System.out.println("TransformVideo.featherFactor() noFgInBox: " + noFgInBox + "  noBgInBox: " + noBgInBox + "  area: " + area + "  ff: " + ff);
-    return ff;
-  }
 
 
   public boolean primaryBgMatch(int pxPrimary, int bgPrimary) {
