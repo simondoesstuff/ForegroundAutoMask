@@ -259,4 +259,8 @@ public class TransformVideo {
     System.out.println("Oops! Super class TransformVideo.execTransform() called instead of derived class method");
     return false;
   }
+
+  protected synchronized void bufImgOutSetRGB(int xframeCoord, int yframeCoord, int rgb) {
+    bufImgOut.setRGB(xframeCoord, yframeCoord, rgb);
+  }
 } // class
