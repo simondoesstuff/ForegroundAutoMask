@@ -269,7 +269,8 @@ public class BackGroundAvailable extends TransformVideo {
       // the following code wait for all processes to complete. There should never be an error thrown, but in the case that it happens, it will be printed instead of thrown.
 
       try {
-        process.get();      // this is a blocking call
+        if (process != null)
+          process.get();      // this is a blocking call
       } catch (InterruptedException | ExecutionException | CancellationException e) {
         e.printStackTrace();
       }
@@ -307,7 +308,8 @@ public class BackGroundAvailable extends TransformVideo {
     //////////////////////////////////////////////////////////////
 
     waitForAllThreadsToComplete(processes, "phase1");
-
+    noThreads = 1; //Main.NTHREADS;
+    shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
     //////////////////////////////////////////////////////////////
     // BEGIN PHASE 2
     //////////////////////////////////////////////////////////////

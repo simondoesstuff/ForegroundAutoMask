@@ -35,8 +35,8 @@ public class Main {
 
     ///////////// methods below
 
-    private void execTransform() throws IOException, JCodecException {
-      try {
+    private void execTransform() throws IOException, JCodecException, InterruptedException {
+      //try {
         if (tv.execTransform()) {   // Implement method in derived class
           System.out.println("Main.execTestPattern() success");
           return;
@@ -45,13 +45,13 @@ public class Main {
           help();
           return;
         }
-      } catch(Exception e) {
-        System.out.println("Main.execTestPattern() Caught exception " + e.toString());
-      }
+//      } catch(Exception e) {
+//        System.out.println("Main.execTestPattern() Caught exception " + e.toString());
+//      }
     } // execTransform()
 
 
-    private void execTestPattern(String[] args) throws IOException, JCodecException {
+    private void execTestPattern(String[] args) throws IOException, JCodecException, InterruptedException {
       System.out.println("Main.execTestPattern() START");
 
       if (args.length < 1) {
@@ -71,14 +71,14 @@ public class Main {
 
 
     private void execTestCopy(String vidInFileName,
-                              String vidOutFileName) throws IOException, JCodecException {
+                              String vidOutFileName) throws IOException, JCodecException, InterruptedException {
       System.out.println("Main.execTestCopy() START");
       tv = new TestCopy(vidInFileName, vidOutFileName);
       execTransform();  // Execute the specific transform for this derived class
     } // execTestCopy()
 
 
-    private void execBackground(String[] args) throws IOException, JCodecException {
+    private void execBackground(String[] args) throws IOException, JCodecException, InterruptedException {
       if (args.length < 3) {
         System.out.println("Insufficient number of arguments for command background.  Num=" + args.length);
         help();
@@ -162,7 +162,7 @@ public class Main {
     }
 
 
-    private void commandInterpreter(String[] args) throws IOException, JCodecException {
+    private void commandInterpreter(String[] args) throws IOException, JCodecException, InterruptedException {
         System.out.println("commandInterpreter() START");
 
         if (args==null || (args.length < 1)) {
@@ -193,7 +193,7 @@ public class Main {
     } // commandInterpreter()
 
 
-    public static void main(String[] args) throws IOException, JCodecException {
+    public static void main(String[] args) throws IOException, JCodecException, InterruptedException {
         System.out.println("Main() START");
         Instant start = Instant.now();
 
