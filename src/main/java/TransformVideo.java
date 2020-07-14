@@ -260,7 +260,7 @@ public class TransformVideo {
     return false;
   }
 
-  protected synchronized void bufImgOutSetRGB(int xframeCoord, int yframeCoord, int rgb) {
+  protected /*synchronized*/ void bufImgOutSetRGB(int xframeCoord, int yframeCoord, int rgb) {
     bufImgOut.setRGB(xframeCoord, yframeCoord, rgb);
   }
 } // class
