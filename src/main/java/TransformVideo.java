@@ -6,6 +6,7 @@ import org.jcodec.common.io.SeekableByteChannel;
 import org.jcodec.common.model.ColorSpace;
 import org.jcodec.common.model.Picture;
 import org.jcodec.common.model.Rational;
+import org.jcodec.scale.AWTUtil;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -130,12 +131,23 @@ public class TransformVideo {
     stopFrame   = stop;
   }
 
+
+  protected boolean magicFrame(long fmNo) {  // Used with the test below
+    return false;  // It can get more complicated in derived classes
+  }
+
+
+  protected boolean magicPixel(int x, int y) {  // Frame Coordinates
+    return false;   // It can get more complicated in derived classes
+  }                 // Intended to use for testing & debugging
+
+
   public void setBgMatchRange(int newRange) {
     fstats.setBgMatchRange (newRange);
   }
 
   public int getBgMatchRange() {
-    return fstats.bgMatchRange;
+    return fstats.getBgMatchRange(0);
   }
 
   public void setFgMatchRange(int newRange) {
@@ -143,7 +155,7 @@ public class TransformVideo {
   }
 
   public int getFgMatchRange() {
-    return fstats.fgMatchRange;
+    return fstats.getFgMatchRange(0);
   }
 
   public void setFeatherSize(int newRange) {
@@ -253,6 +265,30 @@ public class TransformVideo {
             + "  Magenta: " + formatPixel(pixelMagenta)
     );
   } // dumpBufferedImage()
+
+
+  protected void computeBgImage() throws IOException {
+    Picture picBg = null;
+
+    while ((picBg = grabBg.getNativeFrame()) != null) {
+      bufImgIn = AWTUtil.toBufferedImage(picBg);       // In frame
+
+      frameNo = getFrameNumber(grabIn);
+
+      if (frameNo >= startFrame && frameNo <= stopFrame) {  // Limit range for testing purposes
+        System.out.println("Frame Number: " + frameNo);
+        encoder.encodeImage(bufImgOut);                     // Write the out image to the encoder & out file
+      }
+
+      incFramesProcessed();
+
+      if (frameNo > stopFrame)
+        break;  // Exit while loop early
+    } // while
+  }
+
+
+
 
 
   public boolean execTransform() throws IOException, JCodecException, InterruptedException {

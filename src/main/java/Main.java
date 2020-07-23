@@ -142,9 +142,9 @@ public class Main {
 
       System.out.println("Main.Background() \n"
               + "Frame.Start:\t"        + tv.startFrame   + "\n"
-              + "Frame.Stop:\t\t"         + tv.stopFrame  + "\n"
-              + "Match.Range:\t"        + tv.fstats.bgMatchRange + "\n"
-              + "Match.Range:\t"        + tv.fstats.fgMatchRange + "\n"
+              + "Frame.Stop:\t\t"       + tv.stopFrame  + "\n"
+              + "Match.BgRange:\t"      + tv.fstats.getBgMatchRange(0) + "\n"
+              + "Match.FgRange:\t"      + tv.fstats.getFgMatchRange(0) + "\n"
               + "Feather.Size:\t"       + tv.fstats.featherSize  + "\n"
               + "Transparency Color:\t" + TransformVideo.formatPixel(tv.transColor));
 

@@ -14,7 +14,8 @@ public class TestPattern extends TransformVideo {
   }
 
 
-  private boolean magicFrame(long fmNo) {  // Used with the test below
+  @Override
+  protected boolean magicFrame(long fmNo) {  // Used with the test below
     if (fmNo < 10)
       return true;
     else if ((fmNo > 237) && (fmNo < 245))

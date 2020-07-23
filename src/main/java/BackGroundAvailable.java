@@ -34,10 +34,10 @@ public class BackGroundAvailable extends TransformVideo {
   //    within bgMatchRange ticks of the background primary color.
   /////////////////////////////////////////////////////////////////////
 
-  private boolean primaryBgMatch(int pxPrimary, int bgPrimary) {
+  private boolean primaryBgMatch(int pxPrimary, int bgPrimary, int col) {
 
-    int left = bgPrimary - fstats.bgMatchRange;
-    int right = bgPrimary + fstats.bgMatchRange;
+    int left = bgPrimary - fstats.getBgMatchRange(col);
+    int right = bgPrimary + fstats.getBgMatchRange(col);
 
     if ((pxPrimary >= left) && (pxPrimary <= right))
       return true;
@@ -46,9 +46,9 @@ public class BackGroundAvailable extends TransformVideo {
   } // primaryBgMatch()
 
 
-  private boolean primaryFgMatch(int pxPrimary, int bgPrimary) {
-    int left = bgPrimary - fstats.fgMatchRange;
-    int right = bgPrimary + fstats.fgMatchRange;
+  private boolean primaryFgMatch(int pxPrimary, int bgPrimary, int col) {
+    int left  = bgPrimary - fstats.getFgMatchRange(col);
+    int right = bgPrimary + fstats.getFgMatchRange(col);
 
     // The question is, is this pixel a lot different than the Bg color?
 
@@ -72,7 +72,7 @@ public class BackGroundAvailable extends TransformVideo {
 //            + "  w: "   + w
 //            + "  y: "   + y);
 
-    if (x == 0 || y == 0)         // Edge of the frame?
+    if (x == 0 || y == 0)     // Edge of the frame?
       return true;            // Force hard core bg on the frame edge
 
     if (x == (w - 1) || y == (h - 1)) // Other edge of the frame?
@@ -86,13 +86,13 @@ public class BackGroundAvailable extends TransformVideo {
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (!primaryBgMatch(pxRed, bgRed))
+    if (!primaryBgMatch(pxRed, bgRed, x))
       return false;
 
-    if (!primaryBgMatch(pxGrn, bgGrn))
+    if (!primaryBgMatch(pxGrn, bgGrn, x))
       return false;
 
-    if (!primaryBgMatch(pxBlu, bgBlu))
+    if (!primaryBgMatch(pxBlu, bgBlu, x))
       return false;
 
     return true;
@@ -109,7 +109,7 @@ public class BackGroundAvailable extends TransformVideo {
 //            + "  w: "   + w
 //            + "  y: "   + y);
 
-    if (x == 0 || y == 0)           // Edge of the frame is dedicated to BG
+    if (x == 0 || y == 0)       // Edge of the frame is dedicated to BG
       return false;             // Force hard core bg on the frame edge
 
     if (x == (w - 1) || y == (h - 1))   // Other edge of the frame?
@@ -119,17 +119,17 @@ public class BackGroundAvailable extends TransformVideo {
     int pxGrn = getGreen(px);
     int pxBlu = getBlue(px);
 
-    int bgRed = getRed(bg);   // Get Background primary colors
+    int bgRed = getRed(bg);     // Get Background primary colors
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (primaryFgMatch(pxRed, bgRed))
+    if (primaryFgMatch(pxRed, bgRed, x))
       return true;
 
-    if (primaryFgMatch(pxGrn, bgGrn))
+    if (primaryFgMatch(pxGrn, bgGrn, x))
       return true;
 
-    if (primaryFgMatch(pxBlu, bgBlu))
+    if (primaryFgMatch(pxBlu, bgBlu, x))
       return true;
 
     return false;
@@ -218,8 +218,27 @@ public class BackGroundAvailable extends TransformVideo {
   } // reviseImgOutPhase1()
 
 
+  @Override
+  protected boolean magicPixel(int x, int y) {  // Frame Coordinates
+    if (x  <1025 || x > 1035)
+      return false;
+
+    if (y  <445 || y > 455)
+      return false;
+
+    //System.out.println("magicPixel() " + frameNo + "  x: " + x + "  y: " + y);
+    return true;
+  }
+
+  private void logIfMagicPixel(int x, int y, String s) {
+    return;
+//    if (magicPixel(x,y))
+//      System.out.println("logIfMagicPixel() " + frameNo + "  x: " + x + "  y: " + y + "  " + s);
+  }
+
+
   private void reviseImgOutPhase2(FrameSection s) {
-    featherBoxStats fbs = new featherBoxStats();
+    featherBoxStats fbs = new featherBoxStats(getFeatherSize());
 
     for (int y = s.hStart; y < s.hEndPlus1; y++) {     // Loop through all pixels for step 1 & step 2.
       for (int x = s.wStart; x < s.wEndPlus1; x++) {
@@ -231,36 +250,45 @@ public class BackGroundAvailable extends TransformVideo {
         /////////////////////////////////////////////////////////////////////////////////
 //      System.out.println("Frame Number: " + frameNo + "  x: " + x + "  y: " + y + "  " + getInputWidth() + "x" + getInputHeight());
 
-        if (fstats.isBg(x, y) && fstats.isFg(x, y)) {
+//        if (magicPixel(x, y)) { // Testing to locate region of the frame to investigate deeper
+//          bufImgOutSetRGB(x, y, 0xffffffff);  // Force to Black with 0xff Alpha Channel or Green etc.
+//          continue;
+//        }
+
+        if (fstats.isBg(x, y) && fstats.isFg(x, y)) { // Should never happen
           System.out.println("FG&BG2!!!! Frame Number: " + frameNo + "  x: " + x + "  y: " + y);
           System.exit(0);
         }
 
-//
-        if (fstats.isBg(x, y))
-          //bufImgOut.setRGB(x, y, transColor);  // Simple case.  Do not compute feather box.  Set to black
+        if (fstats.isBg(x, y)) {
           bufImgOutSetRGB(x, y, transColor);     // Synchronized
+          logIfMagicPixel(x, y, "BG PIXEL");
+        }
         else {
-          fstats.populateFeatherBox(fbs, getInputWidth(), getInputHeight(), x, y);                  // Just computing statistics of the box at this point.
+          fstats.populateFeatherBox(fbs, getInputWidth(), getInputHeight(), x, y, magicPixel(x,y));                  // Just computing statistics of the box at this point.
 
           if (fbs.containsBgPixels() && !fbs.containsFgPixels()) {
 //          System.out.println("NonLinear Force to Black");
-//          bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
+
+            logIfMagicPixel(x, y, "BG but no FG PIXEL");
           } else {
-            if (fstats.isFg(x, y) && !fbs.containsBgPixels())                  // FG pixel and No BG pixels
-              ;                                                       // Let's see the video fg how about
-            else if (!fbs.containsFgPixels() && !fbs.containsBgPixels())      // Very grey area in between bg and fg colors.   Assume original pixel is good
-              ;                                                       // NOOP yields original pixel color
-            else if (fstats.muteRow(x, y) || fstats.muteCol(x, y))
-//            bufImgOut.setRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
+            if (fstats.isFg(x, y) && !fbs.containsBgPixels()) {                 // FG pixel and No BG pixels
+              logIfMagicPixel(x, y, "FG but no BG PIXEL -- NOOP");;
+            }
+            else if (!fbs.containsFgPixels() && !fbs.containsBgPixels()) {      // Very grey area in between bg and fg colors.   Assume original pixel is good
+              logIfMagicPixel(x, y, "no BG & no FG PIXEL -- NOOP");                                                       // NOOP yields original pixel color
+            }
+            else if (fstats.muteRow(x, y) || fstats.muteCol(x, y)) {
               bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
+//              logIfMagicPixel(x, y, "Mute row or Mute Col - Make Transparent");
+            }
             else {                                                    // Hard case as this box contains fg and bg pixel.  We must feather.
               float ff = fbs.featherFactor();
               int newRGB = getFeatheredPixel(x, y, ff);
 //            System.out.println("Feathering  x: " + x + "  y: " + y + "  FeatureFactor: " + ff);
-//            bufImgOut.setRGB(x, y, newRGB);     // New feathered color
               bufImgOutSetRGB(x, y, newRGB);     // New feathered color
+//              logIfMagicPixel(x, y, "FEATHER " + ff);
             } // else
           } // else
         } // else
@@ -287,14 +315,11 @@ public class BackGroundAvailable extends TransformVideo {
   }
 
 
-  private void reviseImgOutFrame() throws InterruptedException {
-    Future<?>[] processes = new Future<?>[Main.NTHREADS];
-
-    int noThreads = Main.NTHREADS;
-    int width   = getInputWidth();  // Real frame width
-    int height  = getInputHeight(); // Real frame height
+  private void schedulePhase1(Future<?>[] processes,
+                              int         noThreads,
+                              int         width,
+                              int         height) throws InterruptedException {
     int shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
-
     int prevMax = 0;  // Actually height of the job given to the thread
 
     for (int i = 0; i < noThreads; i++) {
@@ -308,22 +333,22 @@ public class BackGroundAvailable extends TransformVideo {
 //      System.out.println("\tPhase1(" + width + "," + height + ") Threads: " + i + "/" + noThreads
 //              + "   FrameSection: " + s.wStart + " " + s.wEndPlus1 + " " + s.hStart + " " + s.hEndPlus1);
       processes[i] = Main.threadPool.submit(() -> reviseImgOutPhase1(s, width, height));         // ignite thread i
-    }
+    } // for
 
     //////////////////////////////////////////////////////////////
     // WAIT FOR PHASE 1 COMPLETION
     //////////////////////////////////////////////////////////////
 
     waitForAllThreadsToComplete(processes, "phase1");
-//    noThreads = 1; //Main.NTHREADS;
-//    shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
-    //////////////////////////////////////////////////////////////
-    // BEGIN PHASE 2
-    //////////////////////////////////////////////////////////////
+  }
 
-//    System.out.println("\tfstats.populateFeatherRowCol() Not multi-threaded.  Perhaps Rows could be done on one thread and Cols on another?");
-    fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
-    prevMax = 0;
+
+  public void schedulePhase2(Future<?>[] processes,
+                             int         noThreads,
+                             int         width,
+                             int         height) throws InterruptedException {
+    int shift   = getInputHeight() / noThreads;       // Delta Height.  Uses integer math, expect sections to be a bit too small.
+    int prevMax = 0;
 
     for (int i = 0; i < noThreads; i++) {
       int hstart = prevMax;
@@ -343,15 +368,33 @@ public class BackGroundAvailable extends TransformVideo {
     //////////////////////////////////////////////////////////////
 
     waitForAllThreadsToComplete(processes, "phase2");
+  }
+
+  private void reviseImgOutFrame() throws InterruptedException {
+    Future<?>[] processes = new Future<?>[Main.NTHREADS];
+    int noThreads = Main.NTHREADS;
+    int width     = getInputWidth();  // Real frame width
+    int height    = getInputHeight(); // Real frame height
+
+    fstats.makeActiveNormal();
+    schedulePhase1(processes, noThreads, width, height);
+
+//    System.out.println("\tfstats.populateFeatherRowCol() Not multi-threaded.  Perhaps Rows could be done on one thread and Cols on another?");
+    fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
+//    fstats.dumpColStatsInFow(getInputWidth());
+//    System.exit(117);
+    fstats.findSubject(getInputWidth());
+
+    fstats.makeActiveEnhanced();
+    schedulePhase1(processes, noThreads, width, height);
+
+    fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
+
+    schedulePhase2(processes, noThreads, width, height);
   } // reviseImgOutFrame
 
 
-  ///////////////////////////////////////////////////////////////////
-  // This test verifies that an mp4 video can be read in a frame at a
-  // time and output/encoded into a .mov file that is effectively
-  // identical.  Return true for success and false for error.
-  // Helps the caller bring up help() when things go wrong.
-  ///////////////////////////////////////////////////////////////////
+
   @Override
   public boolean execTransform() throws IOException, JCodecException, InterruptedException {
     System.out.println("BackGroundAvailable.execTransform() VIDEO FILES:  " + vidInFileName + "  " + vidOutFileName);
@@ -384,7 +427,7 @@ public class BackGroundAvailable extends TransformVideo {
       frameNo = getFrameNumber(grabIn);   // Track Frame Number for debugging
       pictureBg = grabBg.getNativeFrame();
       bufImgBg = AWTUtil.toBufferedImage(pictureBg);   // Bg frame
-      fstats.createFrameFgFlagArray(getInputWidth(), getInputHeight());  // Full Frame Size.  Used for feathering
+      fstats.createFrameFgFlagArrays(getInputWidth(), getInputHeight());  // Full Frame Size.  Used for feathering
 
       /////////////////////////////////////////////////////////////////////
       // Loop through all input frames and send to output encoder

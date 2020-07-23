@@ -1,3 +1,5 @@
+
+
 public class frameStats {
 
 ///////////////////////////////////////////////////////////
@@ -6,31 +8,46 @@ public class frameStats {
   // Flag=false Foreground pixel we may have to feather
   ///////////////////////////////////////////////////////////
   protected int                 featherSize     = 2;  // Half the size of the feather box
-  protected int                 bgMatchRange    = 4;  // Pixel RGB = BG color +/- bgMatchRange to be a bg pixel
-  protected int                 fgMatchRange    = 30; // Pixel RGB = BG color distance of at least fgMatchRange
+  private   int                 bgMatchRange    = 4;  // Pixel RGB = BG color +/- bgMatchRange to be a bg pixel
+  private   int                 fgMatchRange    = 30; // Pixel RGB = BG color distance of at least fgMatchRange
+  protected boolean             enhanced = false;     // Enhanced subject aware dynamic range
 
-  protected boolean bgFlag[][]        = null; // Pixel is unambiguously a background pixel (frame coordinates)
-  protected boolean fgFlag[][]        = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
+  protected boolean bgFlagActive[][]    = null; // Pixel is unambiguously a background pixel (frame coordinates)
+  protected boolean fgFlagActive[][]    = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
+  protected boolean bgFlagNormal[][]    = null; // Pixel is unambiguously a background pixel (frame coordinates)
+  protected boolean fgFlagNormal[][]    = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
+  protected boolean bgFlagEnhanced[][]  = null; // Pixel is unambiguously a background pixel (frame coordinates)
+  protected boolean fgFlagEnhanced[][]  = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
+  private   int     subjWidth           = 0;    // Subject width
+  private   int     subjCol             = 0;    // Subject location
 
   protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
 //  protected boolean featherBox[][]    = null; // Bounding box around selected pixel
 
 
 
-
-
-
-
-
-
-
-
-  protected void createFrameFgFlagArray(int width, int height) {
+  protected void createFrameFgFlagArrays(int width, int height) {
 //    System.out.println("TransformVideo.createFrameFgFlagArray() " + width + " " + height);
-    bgFlag = new boolean[width][height];  // Frame coordinates
-    fgFlag = new boolean[width][height];  // Frame coordinates
+    bgFlagNormal    = new boolean[width][height];  // Frame coordinates
+    fgFlagNormal    = new boolean[width][height];
+    bgFlagEnhanced  = new boolean[width][height];
+    fgFlagEnhanced  = new boolean[width][height];
+    makeActiveNormal();
 //    featherBox = new boolean[1+featherSize+featherSize][1+featherSize+featherSize]; // Not actually used at this point
   }
+
+  public void makeActiveNormal() {
+    bgFlagActive    = bgFlagNormal;
+    fgFlagActive    = fgFlagNormal;
+    enhanced        = false;
+  }
+
+  public void makeActiveEnhanced() {
+    bgFlagActive    = bgFlagEnhanced;
+    fgFlagActive    = fgFlagEnhanced;
+    enhanced        = true;
+  }
+
 
 //  int FgInRow=0;
 //  int FgInCol=0;
@@ -54,34 +71,55 @@ public class frameStats {
       bgMatchRange = newRange;
   }
 
+  public int getBgMatchRange(int col) { // Range varies with x
+    if (enhanced) {
+      int distanceFromSubject = Math.abs(col - subjCol);
+
+      return bgMatchRange + ((distanceFromSubject)/subjWidth);
+    }
+    else
+      return bgMatchRange;
+  }
+
+
+  public int getFgMatchRange(int col) { // Range varies with x
+    if (enhanced) {
+      int distanceFromSubject = Math.abs(col - subjCol);
+
+      return fgMatchRange+ ((distanceFromSubject)/subjWidth);
+    }
+    else
+      return fgMatchRange;
+  }
+
 
   protected void setBgFlag(int x, int y,    // Frame coordinates
                            boolean flag) {  // true = is a BG pixel color
-    if (bgFlag != null)
-      bgFlag[x][y]=flag;
+    if (bgFlagActive != null)
+      bgFlagActive[x][y]=flag;
   }
 
 
   protected void setFgFlag(int x, int y,    // Frame coordinates
                            boolean flag) {  // true == is a FG pixel color
-    if (fgFlag != null)
-      fgFlag[x][y]=flag;
+    if (fgFlagActive != null)
+      fgFlagActive[x][y]=flag;
   }
 
 
   protected boolean getFgFlag(int x, int y) { // Frame coordinates
-    if (fgFlag == null)
+    if (fgFlagActive == null)
       return false;
     else
-      return fgFlag[x][y];
+      return fgFlagActive[x][y];
   }
 
 
   protected boolean getBgFlag(int x, int y) {   // Frame coordinates
-    if (bgFlag == null)
+    if (bgFlagActive == null)
       return false;
     else
-      return bgFlag[x][y];
+      return bgFlagActive[x][y];
   }
 
 
@@ -151,8 +189,73 @@ public class frameStats {
   private int bgInCol(int col) {
     return colStatsBg[col];
   }
-  private int fgInCol(int col) {
-    return colStatsFg[col];
+  private int fgInCol(int col) { return colStatsFg[col]; }
+
+  public void findSubject(int w) {
+    int fgPeak  = 0;
+    subjCol     = 0;
+
+    // STEP 1: Find the peak where the subject is
+
+    for (int col = 0; col < w; col++) {
+      if (fgInCol(col) > fgPeak) {
+        fgPeak = fgInCol(col);
+        subjCol = col;
+      }
+
+//      System.out.println("findSubject(" + col + ":" + w + ")  " + bgInCol(col) + ":" + fgInCol(col));
+    } // for
+
+    // STEP 2: Find the width of the subject by figuring out when the stats
+    //         drops to .25 of the peak.
+
+    int fgPeakHalf = fgPeak / 4;
+    int fgPeakHalfCol = 0;
+
+
+    for (int col = subjCol + 1; col < w; col++) {
+      if (fgInCol(col) < fgPeakHalf) {
+        fgPeakHalfCol = col;
+        break;
+      }
+    } // for
+
+    subjWidth = fgPeakHalfCol - subjCol;
+    System.out.println("findSubject(SUBJECT) subjCol: " + subjCol + "  fgPeak: " + fgPeak + "  fgPeakHalfCol: " + fgPeakHalfCol + "  subjectWidth: " + subjWidth);
+  } // findSubject()
+
+
+  public void dumpColStatsInFow(int w) {
+//    int fgPeak=0;
+//    int fgPeakCol=0;
+
+    // STEP 1: Find the peak where the subject is
+
+    for (int col=0; col < w; col++) {
+//      if (fgInCol(col) > fgPeak) {
+//        fgPeak = fgInCol(col);
+//        fgPeakCol=col;
+//      }
+
+      System.out.println("dumpColStatsInRow(" + col + ":" + w + ")  " + bgInCol(col) + ":" + fgInCol(col));
+    } // for
+
+    // STEP 2: Find the width of the subject by figuring out when the peak
+    //         drops to .25 of the peak.
+
+//    int fgPeakHalf=fgPeak/4;
+//    int fgPeakHalfCol=0;
+//    int subjWidth = 0;  // Subject width
+//
+//    for (int col=fgPeakCol+1; col < w; col++) {
+//      if (fgInCol(col) < fgPeakHalf) {
+//        fgPeakHalfCol = col;
+//        break;
+//      }
+//    } // for
+//
+//    subjWidth = fgPeakHalfCol - fgPeakCol;
+//    System.out.println("dumpColStatsInRow(SUBJECT)  col: " + fgPeakCol + "  fgPeak: " + fgPeak + "  fgPeakHalfCol: " + fgPeakHalfCol + "  subjectWidth: " + subjWidth);
   }
 
 
@@ -179,10 +282,12 @@ public class frameStats {
                                     int             w,        // Frame width  needed if box exceeds frame dimensions at the edge
                                     int             h,        // Frame Height needed if box exceeds frame dimensions at the edge
                                     int             xcenter,  // Center of the box in frame coordinates
-                                    int             ycenter) {
+                                    int             ycenter,
+                                    boolean         enableLogging) {
     int flagx;      // x & y adjusted by sanity checks to that we do not
     int flagy;      // index into feather box out of bounds.
     fbs.clear();    // Number of Bg & Fb pixes in the feather box
+    fbs.setLogging(enableLogging);
 
     for (int ybox=-featherSize; ybox<=featherSize; ybox++) {      // Loop box coordinates
       flagy = ycenter + ybox;     // Translate box coordinates to flag array coordinates
