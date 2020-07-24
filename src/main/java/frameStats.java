@@ -262,7 +262,7 @@ public class frameStats {
   boolean muteRow(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (bgInRow(y) > 100 && fgInRow(y) <20)
+    else if (bgInRow(y) > 75 && fgInRow(y) <20)
       return true;
     else
       return false;
@@ -271,7 +271,7 @@ public class frameStats {
   boolean muteCol(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (bgInCol(x) > 100 && fgInCol(x) <20)
+    else if (bgInCol(x) > 75 && fgInCol(x) <20)
       return true;
     else
       return false;
