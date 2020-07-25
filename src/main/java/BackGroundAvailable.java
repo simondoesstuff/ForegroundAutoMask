@@ -34,10 +34,10 @@ public class BackGroundAvailable extends TransformVideo {
   //    within bgMatchRange ticks of the background primary color.
   /////////////////////////////////////////////////////////////////////
 
-  private boolean primaryBgMatch(int pxPrimary, int bgPrimary, int col) {
+  private boolean primaryBgMatch(int pxPrimary, int bgPrimary, int row, int col) {
 
-    int left = bgPrimary - fstats.getBgMatchRange(col);
-    int right = bgPrimary + fstats.getBgMatchRange(col);
+    int left = bgPrimary - fstats.getBgMatchRange(row, col);
+    int right = bgPrimary + fstats.getBgMatchRange(row, col);
 
     if ((pxPrimary >= left) && (pxPrimary <= right))
       return true;
@@ -46,9 +46,9 @@ public class BackGroundAvailable extends TransformVideo {
   } // primaryBgMatch()
 
 
-  private boolean primaryFgMatch(int pxPrimary, int bgPrimary, int col) {
-    int left  = bgPrimary - fstats.getFgMatchRange(col);
-    int right = bgPrimary + fstats.getFgMatchRange(col);
+  private boolean primaryFgMatch(int pxPrimary, int bgPrimary, int row, int col) {
+    int left  = bgPrimary - fstats.getFgMatchRange(row, col);
+    int right = bgPrimary + fstats.getFgMatchRange(row, col);
 
     // The question is, is this pixel a lot different than the Bg color?
 
@@ -86,13 +86,13 @@ public class BackGroundAvailable extends TransformVideo {
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (!primaryBgMatch(pxRed, bgRed, x))
+    if (!primaryBgMatch(pxRed, bgRed, y, x))
       return false;
 
-    if (!primaryBgMatch(pxGrn, bgGrn, x))
+    if (!primaryBgMatch(pxGrn, bgGrn, y, x))
       return false;
 
-    if (!primaryBgMatch(pxBlu, bgBlu, x))
+    if (!primaryBgMatch(pxBlu, bgBlu, y, x))
       return false;
 
     return true;
@@ -123,13 +123,13 @@ public class BackGroundAvailable extends TransformVideo {
     int bgGrn = getGreen(bg);
     int bgBlu = getBlue(bg);
 
-    if (primaryFgMatch(pxRed, bgRed, x))
+    if (primaryFgMatch(pxRed, bgRed, y, x))
       return true;
 
-    if (primaryFgMatch(pxGrn, bgGrn, x))
+    if (primaryFgMatch(pxGrn, bgGrn, y, x))
       return true;
 
-    if (primaryFgMatch(pxBlu, bgBlu, x))
+    if (primaryFgMatch(pxBlu, bgBlu, y, x))
       return true;
 
     return false;
@@ -277,7 +277,8 @@ public class BackGroundAvailable extends TransformVideo {
               logIfMagicPixel(x, y, "FG but no BG PIXEL -- NOOP");;
             }
             else if (!fbs.containsFgPixels() && !fbs.containsBgPixels()) {      // Very grey area in between bg and fg colors.   Assume original pixel is good
-              logIfMagicPixel(x, y, "no BG & no FG PIXEL -- NOOP");                                                       // NOOP yields original pixel color
+//              logIfMagicPixel(x, y, "no BG & no FG PIXEL -- NOOP"); xxx                                                      // NOOP yields original pixel color
+              bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
             }
             else if (fstats.muteRow(x, y) || fstats.muteCol(x, y)) {
               bufImgOutSetRGB(x, y, transColor);  // Force to Black with 0xff Alpha Channel or Green etc.
@@ -292,6 +293,23 @@ public class BackGroundAvailable extends TransformVideo {
             } // else
           } // else
         } // else
+      } // for x
+    } // for y
+  }
+
+
+
+  private void windowWash(FrameSection s) {
+    featherBoxStats fbs = new featherBoxStats(getFeatherSize());
+
+    for (int y = s.hStart; y < s.hEndPlus1; y++) {     // Loop through all pixels for step 1 & step 2.
+      for (int x = s.wStart; x < s.wEndPlus1; x++) {
+        fstats.populateFeatherBox(fbs, getInputWidth(), getInputHeight(), x, y, magicPixel(x,y));
+
+        if (!fstats.isBg(x, y) && !fstats.isFg(x,y)) {
+          if (!fbs.containsFgPixels()) {
+          }
+        }
       } // for x
     } // for y
   }
@@ -383,10 +401,15 @@ public class BackGroundAvailable extends TransformVideo {
     fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
 //    fstats.dumpColStatsInFow(getInputWidth());
 //    System.exit(117);
-    fstats.findSubject(getInputWidth());
-
+    fstats.findSubject(getInputWidth(), getInputHeight());
     fstats.makeActiveEnhanced();
     schedulePhase1(processes, noThreads, width, height);
+
+
+
+//    windowWash(new FrameSection(0, width, 0, height));  // Might be able to run more than once and keep cleaning up the green
+
+
 
     fstats.populateFeatherRowCol(getInputWidth(), getInputHeight());     // Needs to be outside frame section ?????????????????????????????????????????????????????????????????????????????
 
@@ -460,6 +483,7 @@ public class BackGroundAvailable extends TransformVideo {
       NIOUtils.closeQuietly(fileOut);
     }
 
+//    System.out.println("maxDelta: " + frameStats.maxDelta);
     return true;
   } // execTransform()
 } // class

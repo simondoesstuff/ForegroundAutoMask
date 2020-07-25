@@ -147,7 +147,7 @@ public class TransformVideo {
   }
 
   public int getBgMatchRange() {
-    return fstats.getBgMatchRange(0);
+    return fstats.getBgMatchRange(0, 0);
   }
 
   public void setFgMatchRange(int newRange) {
@@ -155,7 +155,7 @@ public class TransformVideo {
   }
 
   public int getFgMatchRange() {
-    return fstats.getFgMatchRange(0);
+    return fstats.getFgMatchRange(0, 0);
   }
 
   public void setFeatherSize(int newRange) {

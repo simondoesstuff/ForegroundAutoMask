@@ -19,11 +19,13 @@ public class frameStats {
   protected boolean bgFlagEnhanced[][]  = null; // Pixel is unambiguously a background pixel (frame coordinates)
   protected boolean fgFlagEnhanced[][]  = null; // Pixel is unambiguously a foreground pixel (frame coordinates)
   private   int     subjWidth           = 0;    // Subject width
+  private   int     subjHeight          = 0;    // Subject Height
   private   int     subjCol             = 0;    // Subject location
+  private   int     subjRow             = 0;    // Subject location
 
   protected int     featherArea       = (1 +featherSize +  featherSize) * (1 + featherSize + featherSize);
 //  protected boolean featherBox[][]    = null; // Bounding box around selected pixel
-
+//  public static int  maxDelta = 0;
 
 
   protected void createFrameFgFlagArrays(int width, int height) {
@@ -71,22 +73,45 @@ public class frameStats {
       bgMatchRange = newRange;
   }
 
-  public int getBgMatchRange(int col) { // Range varies with x
-    if (enhanced) {
-      int distanceFromSubject = Math.abs(col - subjCol);
+  private int enhancedRangeDelta(int row, int col) {
+    int hDistanceFromSubject = Math.abs(col - subjCol);
+    int hdfsDivW = hDistanceFromSubject/subjWidth;
+    int vDistanceFromSubject = Math.abs(row - subjRow);
+    int vdfsDivH = vDistanceFromSubject/subjHeight;
+    int vdfsDiv2H = vDistanceFromSubject/(subjHeight);
 
-      return bgMatchRange + ((distanceFromSubject)/subjWidth);
-    }
+
+    int delta = hdfsDivW + (hdfsDivW * hdfsDivW) + vdfsDivH + (vdfsDiv2H * vdfsDiv2H / 4);
+
+    if (delta > 100)  // Clamp wild exponential results
+      delta = 100;
+
+//    if (delta > maxDelta)
+//      maxDelta = delta;
+
+//    System.out.println("enhanceRangeDelta(" + row + "," + col + "," + subjHeight + "," + subjWidth + ")"
+//            + "  hDist: "     + hDistanceFromSubject
+//            + "  hdfsDivW: "  + hdfsDivW
+//            + "  vDist: "     + vDistanceFromSubject
+//            + "  vdfsDivH: "  + vdfsDivH
+//            + "  vdfsDiv2H: "  + vdfsDiv2H
+//            + "  delta: "     + delta);
+
+    return delta;
+  }
+
+
+  public int getBgMatchRange(int row, int col) { // Range varies with x
+    if (enhanced)
+      return bgMatchRange + enhancedRangeDelta(row, col);
     else
       return bgMatchRange;
   }
 
 
-  public int getFgMatchRange(int col) { // Range varies with x
+  public int getFgMatchRange(int row, int col) { // Range varies with x
     if (enhanced) {
-      int distanceFromSubject = Math.abs(col - subjCol);
-
-      return fgMatchRange+ ((distanceFromSubject)/subjWidth);
+      return fgMatchRange + enhancedRangeDelta(row, col);
     }
     else
       return fgMatchRange;
@@ -191,37 +216,81 @@ public class frameStats {
   }
   private int fgInCol(int col) { return colStatsFg[col]; }
 
-  public void findSubject(int w) {
-    int fgPeak  = 0;
+
+  public void findSubject(int w, int h) {
+    //////////////////////////////////////////////////////////
+    // STEP 1: Find the horizontal peak where the subject is
+    //////////////////////////////////////////////////////////
+
+    int fgColPeak  = 0;
     subjCol     = 0;
 
-    // STEP 1: Find the peak where the subject is
-
     for (int col = 0; col < w; col++) {
-      if (fgInCol(col) > fgPeak) {
-        fgPeak = fgInCol(col);
+      if (fgInCol(col) > fgColPeak) {
+        fgColPeak = fgInCol(col);
         subjCol = col;
       }
 
 //      System.out.println("findSubject(" + col + ":" + w + ")  " + bgInCol(col) + ":" + fgInCol(col));
     } // for
 
+    //////////////////////////////////////////////////////////////////////////
     // STEP 2: Find the width of the subject by figuring out when the stats
     //         drops to .25 of the peak.
+    //////////////////////////////////////////////////////////////////////////
 
-    int fgPeakHalf = fgPeak / 4;
-    int fgPeakHalfCol = 0;
-
+    int fgColPeakHalf = fgColPeak / 4;
+    int fgColPeakHalfCol = 0;
 
     for (int col = subjCol + 1; col < w; col++) {
-      if (fgInCol(col) < fgPeakHalf) {
-        fgPeakHalfCol = col;
+      if (fgInCol(col) < fgColPeakHalf) {
+        fgColPeakHalfCol = col;
         break;
       }
     } // for
 
-    subjWidth = fgPeakHalfCol - subjCol;
-    System.out.println("findSubject(SUBJECT) subjCol: " + subjCol + "  fgPeak: " + fgPeak + "  fgPeakHalfCol: " + fgPeakHalfCol + "  subjectWidth: " + subjWidth);
+    subjWidth = fgColPeakHalfCol - subjCol;
+
+    //////////////////////////////////////////////////////////
+    // STEP 3: Find the vertical peak where the subject is
+    //////////////////////////////////////////////////////////
+
+    int fgRowPeak  = 0;
+    subjRow     = 0;
+
+    for (int row = 0; row < h; row++) {
+      if (fgInRow(row) > fgRowPeak) {
+        fgRowPeak = fgInRow(row);
+        subjRow = row;
+      }
+    } // for row
+
+//    System.out.println("findSubject(ROW) subjRow: " + subjRow + "  fgRowPeak: " + fgRowPeak);
+
+    //////////////////////////////////////////////////////////////////////////
+    // STEP 4:  Find the height of the subject by figuring out when the stats
+    //          drops to .25 of the peak.   In this case we prefer to have it
+    //          computed from the middle toward the head rather than from the
+    //          middle toward the feet.  Thus, the look is slightly different
+    //          then the column algorithm.
+    //////////////////////////////////////////////////////////////////////////
+
+    int fgRowPeakHalf = fgRowPeak / 2;
+    int fgRowPeakHalfRow = 0;
+
+    for (int row = subjRow -1; row >= 0; row--) {
+//      System.out.println("findSubject(" + row + ") subjRow: " + subjRow + "  fgRowPeak: " + fgRowPeak);
+
+      if (fgInRow(row) < fgRowPeakHalf) {
+        fgRowPeakHalfRow = row;
+        break;
+      }
+    } // for
+
+    subjHeight = subjRow - fgRowPeakHalfRow;
+
+//    System.out.println("findSubject(" + subjCol + ":" + subjRow + ") fgPeak: " + fgColPeak + ":"  + fgRowPeak + "  Width: "
+//                                      + subjWidth + ":" + subjHeight + "  .25%Coord: " + fgColPeakHalfCol + ":"  + fgRowPeakHalfRow);
   } // findSubject()
 
 
@@ -262,7 +331,7 @@ public class frameStats {
   boolean muteRow(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (bgInRow(y) > 75 && fgInRow(y) <20)
+    else if (bgInRow(y) > 50 && fgInRow(y) <20)
       return true;
     else
       return false;
@@ -271,7 +340,7 @@ public class frameStats {
   boolean muteCol(int x, int y) {                           // Not thread safe yet
     if (isFg(x,y))
       return false;                          // Don't mute Fg pixel
-    else if (bgInCol(x) > 75 && fgInCol(x) <20)
+    else if (bgInCol(x) > 50 && fgInCol(x) <20)
       return true;
     else
       return false;
